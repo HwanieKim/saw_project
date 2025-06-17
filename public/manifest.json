@@ -1,0 +1,27 @@
+{
+  "name": "CineShelf - Your Movie Collection",
+  "short_name": "CineShelf",
+  "description": "Discover, organize, and share your favorite movies with friends",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#4F46E5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": ["entertainment", "social", "lifestyle"],
+  "lang": "en",
+  "dir": "ltr"
+} 

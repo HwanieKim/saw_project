@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineShelf - Offline</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 500px;
+        }
+
+        .icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.7;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #f3f4f6;
+        }
+
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #d1d5db;
+            margin-bottom: 2rem;
+        }
+
+        .button {
+            display: inline-block;
+            background: #4f46e5;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .button:hover {
+            background: #4338ca;
+        }
+
+        .features {
+            margin-top: 2rem;
+            text-align: left;
+        }
+
+        .features h3 {
+            margin-bottom: 1rem;
+            color: #f3f4f6;
+        }
+
+        .features ul {
+            list-style: none;
+            color: #d1d5db;
+        }
+
+        .features li {
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🎬</div>
+        <h1>You're Offline</h1>
+        <p>
+            Don't worry! CineShelf works offline too. You can still view your saved movies and reviews.
+        </p>
+        
+        <a href="/" class="button">Try Again</a>
+        
+        <div class="features">
+            <h3>What you can do offline:</h3>
+            <ul>
+                <li>View your watchlist</li>
+                <li>Read your reviews</li>
+                <li>Browse cached movie details</li>
+                <li>Access your profile</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Check if we're back online
+        window.addEventListener('online', function() {
+            window.location.reload();
+        });
+
+        // Try to reconnect every 30 seconds
+        setInterval(function() {
+            if (navigator.onLine) {
+                window.location.reload();
+            }
+        }, 30000);
+    </script>
+</body>
+</html> 
