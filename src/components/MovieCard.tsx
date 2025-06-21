@@ -2,11 +2,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Movie } from '@/app/types';
-
+import StarRating from './StarRating';
 
 interface MovieCardProps {
     movie: Movie;
-    variant?: 'grid' | 'preview';
+    variant?: 'grid' | 'preview' | 'list';
 }
 
 export default function MovieCard({ movie, variant = 'grid' }: MovieCardProps) {
@@ -25,7 +25,7 @@ export default function MovieCard({ movie, variant = 'grid' }: MovieCardProps) {
                         <Image
                             src={posterUrl}
                             alt={movie.title}
-                            fill 
+                            fill
                             className="object-cover rounded"
                         />
                     </div>
@@ -41,6 +41,52 @@ export default function MovieCard({ movie, variant = 'grid' }: MovieCardProps) {
             </Link>
         );
     }
+
+    if (variant === 'list') {
+        return (
+            <Link href={`/movie/${movie.id}`}>
+                <div className="flex items-center p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer gap-4">
+                    <div className="flex-shrink-0 w-16 h-24 relative">
+                        <Image
+                            src={posterUrl}
+                            alt={movie.title}
+                            fill
+                            className="object-cover rounded"
+                        />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-semibold text-white truncate">
+                            {movie.title}
+                        </h3>
+                        <p className="text-sm text-gray-400 mt-1">
+                            {movie.release_date?.substring(0, 4) || 'N/A'}
+                        </p>
+                        {movie.overview && (
+                            <p className="text-sm text-gray-500 mt-2 line-clamp-2">
+                                {movie.overview}
+                            </p>
+                        )}
+                    </div>
+                    <div className="flex-shrink-0 text-right">
+                        {movie.vote_average && movie.vote_average > 0 && (
+                            <div className="flex items-center gap-1 justify-end">
+                                <StarRating
+                                    value={movie.vote_average}
+                                    interactive={false}
+                                    showValue={false}
+                                    size="sm"
+                                />
+                                <span className="text-sm font-medium">
+                                    {movie.vote_average.toFixed(1)}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </Link>
+        );
+    }
+
     return (
         <Link
             href={`/movie/${movie.id}`}
@@ -60,15 +106,17 @@ export default function MovieCard({ movie, variant = 'grid' }: MovieCardProps) {
                 </h3>
                 <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
                     <span>{movie.release_date?.substring(0, 4) || 'N/A'}</span>
-                    {movie.vote_average&& movie.vote_average > 0 && (
+                    {movie.vote_average && movie.vote_average > 0 && (
                         <div className="flex items-center gap-1">
-                            <svg
-                                className="w-4 h-4 text-yellow-400"
-                                fill="currentColor"
-                                viewBox="0 0 20 20">
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                            </svg>
-                            <span>{movie.vote_average.toFixed(1)}</span>
+                            <StarRating
+                                value={movie.vote_average}
+                                interactive={false}
+                                showValue={false}
+                                size="sm"
+                            />
+                            <span className="text-sm font-medium">
+                                {movie.vote_average.toFixed(1)}
+                            </span>
                         </div>
                     )}
                 </div>

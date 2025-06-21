@@ -1,8 +1,9 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import Navbar from '@/components/Navbar';
+import Script from 'next/script';
 
 const geistMono = Geist_Mono({
     variable: '--font-geist-mono',
@@ -14,8 +15,6 @@ export const metadata: Metadata = {
     description:
         'Discover, organize, and share your favorite movies with friends',
     manifest: '/manifest.json',
-    themeColor: '#4F46E5',
-    viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
     appleWebApp: {
         capable: true,
         statusBarStyle: 'default',
@@ -33,6 +32,13 @@ export const metadata: Metadata = {
             { url: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
         ],
     },
+};
+
+export const viewport: Viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    themeColor: '#4F46E5',
 };
 
 export default function RootLayout({
@@ -59,6 +65,12 @@ export default function RootLayout({
                     <Navbar />
                     <main className="container mx-auto p-4">{children}</main>
                 </AuthProvider>
+                {process.env.NODE_ENV === 'production' && (
+                    <Script
+                        src="/pwa-register.js"
+                        strategy="afterInteractive"
+                    />
+                )}
             </body>
         </html>
     );

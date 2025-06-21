@@ -94,9 +94,12 @@ export default function ReviewModal({
                             ))}
                         </div>
                         <p className="text-sm text-gray-400 mt-1">
-                            {formData.rating > 0
-                                ? `${formData.rating}/10`
-                                : 'Select a rating'}
+                            <span className="text-yellow-400 font-bold ml-2 flex items-center gap-1">
+                                ★
+                                <span className="ml-1">
+                                    {formData.rating}/10
+                                </span>
+                            </span>
                         </p>
                     </div>
 

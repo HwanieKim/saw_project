@@ -47,3 +47,35 @@ export interface ReviewFormData {
     rating: number;
     reviewText: string;
 }
+
+export interface UserProfile {
+    uid: string;
+    displayName: string;
+    email: string;
+    photoURL?: string;
+    bio?: string;
+    followers: string[];
+    following: string[];
+    createdAt: Date;
+}
+
+export interface Activity {
+    id: string;
+    type: 'review' | 'list_add' | 'follow';
+    userId: string;
+    userName: string;
+    movieId?: number;
+    movieTitle?: string;
+    reviewText?: string;
+    rating?: number;
+    listName?: string;
+    targetUserId?: string;
+    targetUserName?: string;
+    timestamp: Date;
+}
+
+export interface Recommendation {
+    movie: Movie;
+    reason: string;
+    source: 'watchlist' | 'reviews' | 'following' | 'trending';
+}

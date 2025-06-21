@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/firebase/config';
 import { FirebaseError } from 'firebase/app';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc } from 'firebase/firestore';
+import { requestNotificationPermission } from '@/firebase/fcm';
 
 export default function RegisterForm() {
     const [displayName, setDisplayName] = useState<string>('');
@@ -33,13 +34,17 @@ export default function RegisterForm() {
                 displayName: displayName,
                 createdAt: new Date(),
             });
+            const token = await requestNotificationPermission();
+            if (token && user?.uid) {
+                await updateDoc(doc(db, 'users', user.uid), {
+                    fcmToken: token,
+                });
+            }
             router.push('/');
         } catch (err: unknown) {
             if (err instanceof FirebaseError) {
-                console.error('Firebase Error:', err.code, err.message);
                 setError(err.message);
             } else {
-                console.error('Unexpected Error:', err);
                 setError('An unexpected error occurred, please try again');
             }
         }
@@ -48,12 +53,12 @@ export default function RegisterForm() {
     return (
         <form
             onSubmit={handleSubmit}
-            className="w-full max-w-sm p-8 space-y-6 bg-white rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold text-center text-gray-800">
+            className="w-full max-w-sm p-8 space-y-6 bg-gray-800 rounded-lg shadow-md text-white">
+            <h2 className="text-2xl font-bold text-center text-white">
                 Create an Account
             </h2>
             <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-200">
                     Display Name
                 </label>
                 <input
@@ -61,11 +66,11 @@ export default function RegisterForm() {
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     required
-                    className="w-full px-3 py-2 mt-1 text-gray-800 border rounded-md focus:outline-none focus:ring focus:ring-indigo-200"
+                    className="w-full px-3 py-2 mt-1 bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
             </div>
             <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-200">
                     Email
                 </label>
                 <input
@@ -73,11 +78,11 @@ export default function RegisterForm() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full px-3 py-2 mt-1 text-gray-800 border rounded-md focus:outline-none focus:ring focus:ring-indigo-200"
+                    className="w-full px-3 py-2 mt-1 bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
             </div>
             <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-200">
                     Password
                 </label>
                 <input
@@ -85,11 +90,11 @@ export default function RegisterForm() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full px-3 py-2 mt-1 text-gray-800 border rounded-md focus:outline-none focus:ring focus:ring-indigo-200"
+                    className="w-full px-3 py-2 mt-1 bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
             </div>
             {error && (
-                <p className="text-sm text-center text-red-500">{error}</p>
+                <p className="text-sm text-center text-red-400">{error}</p>
             )}
             <button
                 type="submit"

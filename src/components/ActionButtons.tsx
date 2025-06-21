@@ -4,40 +4,26 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase/config';
-import {
-    doc,
-    onSnapshot,
-    arrayUnion,
-    arrayRemove,
-    setDoc,
-    collection,
-    addDoc,
-    query,
-    where,
-    getDocs,
-    orderBy,
-    limit,
-} from 'firebase/firestore';
-import { Review, ReviewFormData } from '@/app/types';
-import ReviewModal from './ReviewModal';
+import { doc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
 
 interface ActionButtonsProps {
     movieId: number;
     movieTitle: string;
-    onReviewsUpdate?: (reviews: Review[]) => void;
+    posterPath: string | null;
+    releaseDate: string | null;
+    voteAverage: number | null;
 }
 
 export default function ActionButtons({
     movieId,
     movieTitle,
-    onReviewsUpdate,
+    posterPath,
+    releaseDate,
+    voteAverage,
 }: ActionButtonsProps) {
     const { user } = useAuth();
     const [isInWatchlist, setIsInWatchlist] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [reviewLoading, setReviewLoading] = useState(false);
-    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-    const [userReview, setUserReview] = useState<Review | null>(null);
 
     useEffect(() => {
         if (!user) {
@@ -45,25 +31,19 @@ export default function ActionButtons({
             return;
         }
 
-        const watchListRef = doc(db, 'watchlists', user.uid);
-        const removeFromWatchlist = onSnapshot(
-            watchListRef,
+        // Listen to the user's watchlist subcollection for this movie
+        const watchlistDocRef = doc(
+            db,
+            'users',
+            user.uid,
+            'watchlist',
+            String(movieId)
+        );
+        const unsubscribe = onSnapshot(
+            watchlistDocRef,
             (docSnapshot) => {
                 setLoading(false);
-                if (docSnapshot.exists()) {
-                    const watchlistData = docSnapshot.data();
-                    if (
-                        watchlistData &&
-                        Array.isArray(watchlistData.movieIds)
-                    ) {
-                        setIsInWatchlist(
-                            watchlistData.movieIds.includes(movieId)
-                        );
-                    }
-                } else {
-                    setIsInWatchlist(false);
-                }
-                setLoading(false);
+                setIsInWatchlist(docSnapshot.exists());
             },
             (error) => {
                 console.error('Error listening to watchlist:', error);
@@ -72,103 +52,39 @@ export default function ActionButtons({
             }
         );
 
-        // Check if user has already reviewed this movie
-        const checkUserReview = async () => {
-            try {
-                const reviewsRef = collection(db, 'reviews');
-                const q = query(
-                    reviewsRef,
-                    where('userId', '==', user.uid),
-                    where('movieId', '==', movieId),
-                    limit(1)
-                );
-                const querySnapshot = await getDocs(q);
-                if (!querySnapshot.empty) {
-                    const reviewDoc = querySnapshot.docs[0];
-                    setUserReview({
-                        id: reviewDoc.id,
-                        ...reviewDoc.data(),
-                    } as Review);
-                }
-            } catch (error) {
-                console.error('Error checking user review:', error);
-            }
-        };
-
-        checkUserReview();
-
-        return () => removeFromWatchlist();
+        return () => unsubscribe();
     }, [user, movieId]);
 
     const handleWatchlistToggle = async () => {
         if (!user) return alert('Please log In first to manage your watchlist');
         setLoading(true);
-        const watchlistRef = doc(db, 'watchlists', user.uid);
+        const watchlistDocRef = doc(
+            db,
+            'users',
+            user.uid,
+            'watchlist',
+            String(movieId)
+        );
         try {
-            await setDoc(
-                watchlistRef,
-                {
-                    movieIds: isInWatchlist
-                        ? arrayRemove(movieId)
-                        : arrayUnion(movieId),
-                },
-                { merge: true }
-            );
+            if (isInWatchlist) {
+                await deleteDoc(watchlistDocRef);
+                setIsInWatchlist(false);
+            } else {
+                await setDoc(watchlistDocRef, {
+                    movieId: String(movieId),
+                    title: movieTitle,
+                    posterPath: posterPath || null,
+                    releaseDate: releaseDate || null,
+                    voteAverage: voteAverage ?? null,
+                });
+                setIsInWatchlist(true);
+            }
         } catch (error) {
             console.error('Error updating Watchlist', error);
             alert('Failed to update Watchlist');
-        }
-    };
-
-    const handleReviewSubmit = async (data: ReviewFormData) => {
-        if (!user) return;
-
-        setReviewLoading(true);
-        try {
-            const reviewsRef = collection(db, 'reviews');
-            const reviewData = {
-                userId: user.uid,
-                movieId: movieId,
-                movieTitle: movieTitle,
-                rating: data.rating,
-                reviewText: data.reviewText,
-                displayName: user.displayName || 'Anonymous',
-                timestamp: new Date(),
-            };
-
-            const docRef = await addDoc(reviewsRef, reviewData);
-            const newReview = { id: docRef.id, ...reviewData } as Review;
-            setUserReview(newReview);
-            setIsReviewModalOpen(false);
-
-            // Update reviews list if callback provided
-            if (onReviewsUpdate) {
-                // Fetch updated reviews
-                const updatedReviewsQuery = query(
-                    collection(db, 'reviews'),
-                    where('movieId', '==', movieId),
-                    orderBy('timestamp', 'desc')
-                );
-                const querySnapshot = await getDocs(updatedReviewsQuery);
-                const reviews = querySnapshot.docs.map((doc) => ({
-                    id: doc.id,
-                    ...doc.data(),
-                })) as Review[];
-                onReviewsUpdate(reviews);
-            }
-        } catch (error) {
-            console.error('Error submitting review:', error);
-            alert('Failed to submit review');
         } finally {
-            setReviewLoading(false);
+            setLoading(false);
         }
-    };
-
-    const getReviewButtonText = () => {
-        if (userReview) {
-            return `Edit Review (${userReview.rating}/10)`;
-        }
-        return 'Leave a Review';
     };
 
     if (loading && user) {
@@ -190,29 +106,7 @@ export default function ActionButtons({
                     }`}>
                     {isInWatchlist ? '✓ In Watchlist' : '+ Add to Watchlist'}
                 </button>
-                <button
-                    onClick={() => setIsReviewModalOpen(true)}
-                    disabled={!user}
-                    className="px-6 py-3 bg-gray-600 rounded-lg font-semibold hover:bg-gray-500 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">
-                    {getReviewButtonText()}
-                </button>
             </div>
-
-            <ReviewModal
-                isOpen={isReviewModalOpen}
-                onClose={() => setIsReviewModalOpen(false)}
-                onSubmit={handleReviewSubmit}
-                loading={reviewLoading}
-                initialData={
-                    userReview
-                        ? {
-                              rating: userReview.rating,
-                              reviewText: userReview.reviewText,
-                          }
-                        : undefined
-                }
-                isEditing={!!userReview}
-            />
         </>
     );
 }

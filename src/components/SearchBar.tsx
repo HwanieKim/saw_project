@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useDebounce } from '@/hooks/useDebouce';
+import { useDebounce } from '@/hooks/useDebounce';
 import SearchPrieview from './SearchPrieview';
 
 interface SearchResult {

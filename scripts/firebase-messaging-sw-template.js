@@ -1,7 +1,6 @@
 // scripts/firebase-messaging-sw-template.js
 
 import { initializeApp } from 'firebase/app';
-import { onMessage } from 'firebase/messaging';
 import { getMessaging, onBackgroundMessage} from 'firebase/messaging/sw';
 
 // esbuild가 이 변수를 실제 Firebase 구성 객체로 교체해줍니다.
