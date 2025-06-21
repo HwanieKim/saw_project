@@ -3,9 +3,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteContext {
-    params: {
+    params: Promise<{
         id: string;
-    };
+    }>;
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {

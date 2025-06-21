@@ -3,8 +3,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
-    const serachParams = request.nextUrl.searchParams;
-    const query = serachParams.get('query');
+    const searchParams = request.nextUrl.searchParams;
+    const query = searchParams.get('query');
 
     const TMDB_API_KEY = process.env.TMDB_API_KEY;
 

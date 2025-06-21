@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { category: string } }
+    { params }: { params: Promise<{ category: string }> }
 ) {
     const TMDB_API_KEY = process.env.TMDB_API_KEY;
     if (!TMDB_API_KEY) {
@@ -12,7 +12,7 @@ export async function GET(
         );
     }
 
-    const { category } = params;
+    const { category } = await params;
     const { searchParams } = new URL(request.url);
     const genre = searchParams.get('genre');
     const page = searchParams.get('page') || '1';
