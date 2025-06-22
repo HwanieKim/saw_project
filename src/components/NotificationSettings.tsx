@@ -103,7 +103,7 @@ export default function NotificationSettings() {
                             {permission === 'granted' &&
                                 'Enabled - You will receive notifications'}
                             {permission === 'denied' &&
-                                'Disabled - Notifications are blocked'}
+                                'Disabled - Notifications are blocked. Please enable them in your browser settings.'}
                             {permission === 'default' &&
                                 'Not set - Click to enable notifications'}
                         </p>
@@ -221,6 +221,32 @@ export default function NotificationSettings() {
                             • Never miss important updates about your account
                         </li>
                     </ul>
+                </div>
+            )}
+
+            {/* Permission Denied Help */}
+            {permission === 'denied' && (
+                <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <h4 className="font-medium text-yellow-900 dark:text-yellow-100 mb-2">
+                        How to enable notifications
+                    </h4>
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
+                        Notifications are currently blocked. To enable them:
+                    </p>
+                    <ol className="text-sm text-yellow-800 dark:text-yellow-200 space-y-2 list-decimal list-inside">
+                        <li>
+                            Click the lock/info icon in your browser&apos;s
+                            address bar
+                        </li>
+                        <li>
+                            Find &quot;Notifications&quot; in the site settings
+                        </li>
+                        <li>
+                            Change the setting from &quot;Block&quot; to
+                            &quot;Allow&quot;
+                        </li>
+                        <li>Refresh this page and try again</li>
+                    </ol>
                 </div>
             )}
         </div>

@@ -109,6 +109,58 @@ export function useNotifications() {
         return () => unsubscribe();
     }, [user]);
 
+    // Check and sync token status when user changes
+    useEffect(() => {
+        if (!user || !idToken || !isSupported) return;
+
+        const checkAndSyncToken = async () => {
+            try {
+                // Check if user has stored tokens in backend
+                const response = await fetch('/api/notifications/token', {
+                    headers: {
+                        Authorization: `Bearer ${idToken}`,
+                    },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const hasStoredTokens = data.hasTokens;
+
+                    // If browser permission is granted but no stored tokens, get a new token
+                    if (
+                        permission === 'granted' &&
+                        !hasStoredTokens &&
+                        !token
+                    ) {
+                        console.log(
+                            'Permission granted but no stored tokens. Getting new token...'
+                        );
+                        const fcmToken = await requestNotificationPermission();
+                        if (fcmToken) {
+                            setToken(fcmToken);
+                            // Store token in backend
+                            await fetch('/api/notifications/token', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    Authorization: `Bearer ${idToken}`,
+                                },
+                                body: JSON.stringify({
+                                    token: fcmToken,
+                                    platform: 'web',
+                                }),
+                            });
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking token status:', error);
+            }
+        };
+
+        checkAndSyncToken();
+    }, [user, idToken, isSupported, permission, token]);
+
     // Mark notifications as read
     const markAsRead = useCallback(
         async (notificationIds: string[]) => {
@@ -329,6 +381,8 @@ export function useNotifications() {
 
         // Computed
         isEnabled: permission === 'granted' && !!token,
-        canRequest: permission === 'default' && isSupported,
+        canRequest:
+            isSupported &&
+            (permission === 'default' || permission === 'denied'),
     };
 }

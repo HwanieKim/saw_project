@@ -87,7 +87,9 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            tokens: tokens.map((token) => token.substring(0, 20) + '...'), // Only return partial tokens for security
+            tokens: tokens, // Return full tokens for internal use
+            count: tokens.length,
+            hasTokens: tokens.length > 0,
         });
     } catch (error) {
         console.error('Error getting notification tokens:', error);
