@@ -1,7 +1,16 @@
 'use client';
+// Component for managing user notification preferences
 
 import { useState } from 'react';
 import { useNotifications } from '@/hooks/useNotifications';
+
+interface NotificationPreferences {
+    movieReviews: boolean;
+    followerGained: boolean;
+    followedUserReviews: boolean;
+    recommendations: boolean;
+    general: boolean;
+}
 
 export default function NotificationSettings() {
     const {
@@ -25,8 +34,8 @@ export default function NotificationSettings() {
                     Notifications Not Supported
                 </h3>
                 <p className="text-yellow-700">
-                    Your browser doesn't support push notifications. Please use
-                    a modern browser like Chrome, Firefox, or Safari.
+                    Your browser doesn&apos;t support push notifications. Please
+                    use a modern browser like Chrome, Firefox, or Safari.
                 </p>
             </div>
         );
@@ -57,7 +66,7 @@ export default function NotificationSettings() {
     };
 
     const handlePreferenceChange = async (
-        key: keyof typeof preferences,
+        key: keyof NotificationPreferences,
         value: boolean
     ) => {
         if (!preferences) return;
@@ -142,10 +151,10 @@ export default function NotificationSettings() {
                                     <p className="font-medium text-gray-900 dark:text-white">
                                         {key === 'movieReviews' &&
                                             'Movie Reviews'}
-                                        {key === 'friendRequests' &&
-                                            'Friend Requests'}
-                                        {key === 'watchlistUpdates' &&
-                                            'Watchlist Updates'}
+                                        {key === 'followerGained' &&
+                                            'New Followers'}
+                                        {key === 'followedUserReviews' &&
+                                            'Followed User Reviews'}
                                         {key === 'recommendations' &&
                                             'Movie Recommendations'}
                                         {key === 'general' &&
@@ -153,13 +162,13 @@ export default function NotificationSettings() {
                                     </p>
                                     <p className="text-sm text-gray-600 dark:text-gray-300">
                                         {key === 'movieReviews' &&
-                                            'When friends review movies in your watchlist'}
-                                        {key === 'friendRequests' &&
-                                            'When someone sends you a friend request'}
-                                        {key === 'watchlistUpdates' &&
-                                            'When friends add movies to their watchlist'}
+                                            'When someone reviews a movie in your watchlist'}
+                                        {key === 'followerGained' &&
+                                            'When someone starts following you'}
+                                        {key === 'followedUserReviews' &&
+                                            'When someone you follow reviews a movie'}
                                         {key === 'recommendations' &&
-                                            'When friends recommend movies to you'}
+                                            'When someone recommends a movie to you'}
                                         {key === 'general' &&
                                             'Important updates and announcements'}
                                     </p>
@@ -171,7 +180,7 @@ export default function NotificationSettings() {
                                         checked={value}
                                         onChange={(e) =>
                                             handlePreferenceChange(
-                                                key as keyof typeof preferences,
+                                                key as keyof NotificationPreferences,
                                                 e.target.checked
                                             )
                                         }
@@ -200,8 +209,8 @@ export default function NotificationSettings() {
                     </h4>
                     <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
                         <li>
-                            • Get notified when friends review movies you're
-                            interested in
+                            • Get notified when friends review movies
+                            you&apos;re interested in
                         </li>
                         <li>
                             • Stay updated on friend requests and watchlist

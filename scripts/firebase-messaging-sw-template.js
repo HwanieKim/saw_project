@@ -1,77 +1,64 @@
 // scripts/firebase-messaging-sw-template.js
 
 import { initializeApp } from 'firebase/app';
-import { getMessaging, onBackgroundMessage} from 'firebase/messaging/sw';
+import { getMessaging, onBackgroundMessage } from 'firebase/messaging/sw';
 
-// esbuild가 이 변수를 실제 Firebase 구성 객체로 교체해줍니다.
-const firebaseConfig = process.env.FIREBASE_CONFIG;
+// IMPORTANT: This file should not be directly used.
+// It's a template that's processed by `scripts/generate-sw.mjs` to create the final service worker.
+
+// In the generated sw, this will be replaced with the actual config object.
+const firebaseConfig = SCRIPT_REPLACE_FIREBASE_CONFIG;
 
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
 onBackgroundMessage(messaging, (payload) => {
-    console.log('[SW] Firebase background message received:', payload);
+    console.log('[firebase-messaging-sw.js] Received background message ', payload);
 
-    const notificationTitle = payload.notification?.title;
+    // Customize the notification here
+    const notificationTitle = payload.notification?.title || 'New Notification';
     const notificationOptions = {
-        body: payload.notification?.body,
-        icon: '/icon-192x192.png',
+        body: payload.notification?.body || 'Something new happened!',
+        icon: payload.notification?.icon || '/icon-192x192.png',
+        badge: '/icon-192x192.png', // A badge for the notification
+        data: {
+            url: payload.fcmOptions?.link || payload.data?.url || '/',
+        },
     };
-    console.log('[SW] Notification title:', notificationTitle);
-    console.log('[SW] Notification options:', notificationOptions);
-
-    if (!notificationTitle) {
-        console.warn('[SW] Notification title is missing in the payload.');
-        return;
-    }
-    console.log('self.registration', self.registration);
 
     self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
+// This listener handles the user clicking on the notification.
+self.addEventListener('notificationclick', (event) => {
+    // Close the notification
+    event.notification.close();
 
-self.addEventListener('push', (event) => {
-    // The FCM SDK's default push handler is supposed to handle this,
-    // but it crashes on non-JSON payloads, which are sent by the FCM console's test message feature.
-    // This custom handler will intercept the push, create a valid notification, and display it.
-    console.log('[SW] Push event received.');
+    const urlToOpen = event.notification.data.url || '/';
 
-    if (!event.data) {
-        console.warn('[SW] Push event contained no data. Skipping.');
-        return;
-    }
-
-    let notificationData = {};
-
-    try {
-        // If the payload is JSON, use it.
-        notificationData = event.data.json();
-    } catch {
-        // If the payload is not JSON (e.g., plain text), create a notification object.
-        const title = event.data.text();
-        console.log('[SW] Push received with plain text payload:', title);
-        notificationData = {
-            notification: {
-                title: title,
-                body: 'This is a test notification.',
-                icon: '/icon-192x192.png',
-            },
-        };
-    }
-
-    const notificationTitle = notificationData.notification.title;
-    const notificationOptions = {
-        body: notificationData.notification.body,
-        icon: notificationData.notification.icon || '/icon-192x192.png',
-        data: notificationData.notification.data,
-    };
-
+    // This looks for an existing window and focuses it.
+    // If no window is open, it opens a new one.
     event.waitUntil(
-        self.registration.showNotification(notificationTitle, notificationOptions)
+        clients.matchAll({
+            type: 'window',
+            includeUncontrolled: true,
+        }).then((clientList) => {
+            for (const client of clientList) {
+                // Check if the client's URL matches the one we want to open
+                if (client.url === urlToOpen && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            // If no window is found, open a new one
+            if (clients.openWindow) {
+                return clients.openWindow(urlToOpen);
+            }
+        })
     );
 });
 
-const CACHE_NAME = 'cineshelf-v1';
+
+const CACHE_NAME = 'cineshelf-pwa-v1';
 const urlsToCache = [
     '/',
     '/offline.html',

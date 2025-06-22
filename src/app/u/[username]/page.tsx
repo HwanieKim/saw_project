@@ -8,8 +8,6 @@ import {
     doc,
     getDoc,
     updateDoc,
-    arrayUnion,
-    arrayRemove,
     collection,
     query,
     where,
@@ -45,11 +43,13 @@ interface FollowerUser {
 
 export default function UserProfilePage() {
     const params = useParams();
-    const { user: currentUser } = useAuth();
+    const { user: currentUser, loading: authLoading } = useAuth();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [followLoading, setFollowLoading] = useState(false);
     const [isFollowing, setIsFollowing] = useState(false);
+    const [followersCount, setFollowersCount] = useState(0);
+    const [followingCount, setFollowingCount] = useState(0);
     const [reviews, setReviews] = useState<MovieReview[]>([]);
     const [showFollowers, setShowFollowers] = useState(false);
     const [showFollowing, setShowFollowing] = useState(false);
@@ -71,23 +71,25 @@ export default function UserProfilePage() {
     const username = params.username as string;
 
     useEffect(() => {
+        if (authLoading) return; // Wait for auth to finish
         const fetchProfile = async () => {
+            setLoading(true);
             try {
-                // Find user by displayName
                 const usersRef = collection(db, 'users');
                 const q = query(usersRef, where('displayName', '==', username));
                 const querySnapshot = await getDocs(q);
 
                 if (querySnapshot.empty) {
-                    setLoading(false);
+                    setProfile(null);
                     return;
                 }
 
                 const userDoc = querySnapshot.docs[0];
                 const userData = userDoc.data();
+                const userId = userDoc.id;
 
                 const profileData: UserProfile = {
-                    uid: userDoc.id,
+                    uid: userId,
                     displayName: userData.displayName,
                     email: userData.email,
                     bio: userData.bio || '',
@@ -97,22 +99,23 @@ export default function UserProfilePage() {
                 };
 
                 setProfile(profileData);
+                setFollowersCount(userData.followersCount || 0);
+                setFollowingCount(userData.followingCount || 0);
 
-                // Parallel data fetching for better performance
-                const [currentUserDoc] = await Promise.all([
-                    currentUser
-                        ? getDoc(doc(db, 'users', currentUser.uid))
-                        : null,
-                ]);
+                // Fetch reviews
+                fetchUserReviews(userId);
 
-                // Fetch reviews for this profile
-                fetchUserReviews(userDoc.id);
-
-                // Check if current user is following this profile
-                if (currentUser && currentUserDoc) {
-                    const currentUserData = currentUserDoc.data();
-                    const following = currentUserData?.following || [];
-                    setIsFollowing(following.includes(profileData.uid));
+                // Check following status
+                if (currentUser) {
+                    const followingRef = doc(
+                        db,
+                        'users',
+                        currentUser.uid,
+                        'following',
+                        userId
+                    );
+                    const followingSnap = await getDoc(followingRef);
+                    setIsFollowing(followingSnap.exists());
                 }
             } catch (error) {
                 console.error('Error fetching profile:', error);
@@ -122,27 +125,7 @@ export default function UserProfilePage() {
         };
 
         fetchProfile();
-    }, [username, currentUser]);
-
-    // Refresh following state when currentUser changes
-    useEffect(() => {
-        const checkFollowingState = async () => {
-            if (!currentUser || !profile) return;
-
-            try {
-                const currentUserDoc = await getDoc(
-                    doc(db, 'users', currentUser.uid)
-                );
-                const currentUserData = currentUserDoc.data();
-                const following = currentUserData?.following || [];
-                setIsFollowing(following.includes(profile.uid));
-            } catch (error) {
-                console.error('Error checking following state:', error);
-            }
-        };
-
-        checkFollowingState();
-    }, [currentUser, profile]);
+    }, [username, currentUser, authLoading]);
 
     const fetchUserReviews = async (userId: string) => {
         try {
@@ -175,37 +158,33 @@ export default function UserProfilePage() {
     };
 
     const fetchFollowersList = async () => {
-        if (!profile || profile.followers.length === 0) return;
+        if (!profile || followersCount === 0) return;
 
         setFollowersLoading(true);
         try {
-            // Use batch fetching for better performance
-            const batchSize = 10;
+            const followersRef = collection(
+                db,
+                'users',
+                profile.uid,
+                'followers'
+            );
+            const followersSnap = await getDocs(followersRef);
+            const followerIds = followersSnap.docs.map((doc) => doc.id);
+
             const followersData: FollowerUser[] = [];
-
-            for (let i = 0; i < profile.followers.length; i += batchSize) {
-                const batch = profile.followers.slice(i, i + batchSize);
-                const batchPromises = batch.map(async (followerId) => {
-                    const followerDoc = await getDoc(
-                        doc(db, 'users', followerId)
-                    );
-                    if (followerDoc.exists()) {
-                        const data = followerDoc.data();
-                        return {
-                            uid: followerId,
-                            displayName: data.displayName,
-                            email: data.email,
-                        };
-                    }
-                    return null;
+            if (followerIds.length > 0) {
+                const usersRef = collection(db, 'users');
+                const q = query(usersRef, where('__name__', 'in', followerIds));
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    followersData.push({
+                        uid: doc.id,
+                        displayName: data.displayName,
+                        email: data.email,
+                    });
                 });
-
-                const batchResults = await Promise.all(batchPromises);
-                followersData.push(
-                    ...(batchResults.filter(Boolean) as FollowerUser[])
-                );
             }
-
             setFollowersList(followersData);
         } catch (error) {
             console.error('Error fetching followers:', error);
@@ -215,98 +194,74 @@ export default function UserProfilePage() {
     };
 
     const fetchFollowingList = async () => {
-        if (!profile || profile.following.length === 0) return;
+        if (!profile || followingCount === 0) return;
 
         setFollowingLoading(true);
         try {
-            // Use batch fetching for better performance
-            const batchSize = 10;
+            const followingRef = collection(
+                db,
+                'users',
+                profile.uid,
+                'following'
+            );
+            const followingSnap = await getDocs(followingRef);
+            const followingIds = followingSnap.docs.map((doc) => doc.id);
+
             const followingData: FollowerUser[] = [];
-
-            for (let i = 0; i < profile.following.length; i += batchSize) {
-                const batch = profile.following.slice(i, i + batchSize);
-                const batchPromises = batch.map(async (followingId) => {
-                    const followingDoc = await getDoc(
-                        doc(db, 'users', followingId)
-                    );
-                    if (followingDoc.exists()) {
-                        const data = followingDoc.data();
-                        return {
-                            uid: followingId,
-                            displayName: data.displayName,
-                            email: data.email,
-                        };
-                    }
-                    return null;
-                });
-
-                const batchResults = await Promise.all(batchPromises);
-                followingData.push(
-                    ...(batchResults.filter(Boolean) as FollowerUser[])
+            if (followingIds.length > 0) {
+                const usersRef = collection(db, 'users');
+                const q = query(
+                    usersRef,
+                    where('__name__', 'in', followingIds)
                 );
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    followingData.push({
+                        uid: doc.id,
+                        displayName: data.displayName,
+                        email: data.email,
+                    });
+                });
             }
-
             setFollowingList(followingData);
         } catch (error) {
-            console.error('Error fetching following:', error);
+            console.error('Error fetching following list:', error);
         } finally {
             setFollowingLoading(false);
         }
     };
 
     const handleFollow = async () => {
-        if (!currentUser || !profile) return;
+        if (!currentUser || !profile || followLoading) return;
 
         setFollowLoading(true);
         try {
-            const currentUserRef = doc(db, 'users', currentUser.uid);
-            const profileUserRef = doc(db, 'users', profile.uid);
+            const idToken = await currentUser.getIdToken();
+            const action = isFollowing ? 'unfollow' : 'follow';
 
-            if (isFollowing) {
-                // Unfollow
-                await updateDoc(currentUserRef, {
-                    following: arrayRemove(profile.uid),
-                });
-                await updateDoc(profileUserRef, {
-                    followers: arrayRemove(currentUser.uid),
-                });
-                setIsFollowing(false);
+            const response = await fetch('/api/social/follow', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${idToken}`,
+                },
+                body: JSON.stringify({ targetUserId: profile.uid, action }),
+            });
 
-                // Update local state immediately
-                setProfile((prev) =>
-                    prev
-                        ? {
-                              ...prev,
-                              followers: prev.followers.filter(
-                                  (id) => id !== currentUser.uid
-                              ),
-                          }
-                        : null
-                );
-            } else {
-                // Follow
-                await updateDoc(currentUserRef, {
-                    following: arrayUnion(profile.uid),
-                });
-                await updateDoc(profileUserRef, {
-                    followers: arrayUnion(currentUser.uid),
-                });
-                setIsFollowing(true);
-
-                // Update local state immediately
-                setProfile((prev) =>
-                    prev
-                        ? {
-                              ...prev,
-                              followers: [...prev.followers, currentUser.uid],
-                          }
-                        : null
-                );
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Failed to perform action');
             }
-        } catch (error) {
-            console.error('Error following/unfollowing:', error);
-            // Revert the state if there was an error
+
+            // Update UI optimistically
             setIsFollowing(!isFollowing);
+            setFollowersCount((prev) => (isFollowing ? prev - 1 : prev + 1));
+        } catch (error) {
+            console.error(
+                `Error ${isFollowing ? 'unfollowing' : 'following'} user:`,
+                error
+            );
         } finally {
             setFollowLoading(false);
         }
@@ -468,7 +423,7 @@ export default function UserProfilePage() {
                                         onClick={handleFollowersClick}
                                         className="text-sm text-gray-400 hover:text-white cursor-pointer">
                                         <span className="font-semibold text-white">
-                                            {profile.followers.length}
+                                            {followersCount}
                                         </span>{' '}
                                         followers
                                     </button>
@@ -476,7 +431,7 @@ export default function UserProfilePage() {
                                         onClick={handleFollowingClick}
                                         className="text-sm text-gray-400 hover:text-white cursor-pointer">
                                         <span className="font-semibold text-white">
-                                            {profile.following.length}
+                                            {followingCount}
                                         </span>{' '}
                                         following
                                     </button>

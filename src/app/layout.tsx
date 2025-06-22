@@ -65,12 +65,7 @@ export default function RootLayout({
                     <Navbar />
                     <main className="container mx-auto p-4">{children}</main>
                 </AuthProvider>
-                {process.env.NODE_ENV === 'production' && (
-                    <Script
-                        src="/pwa-register.js"
-                        strategy="afterInteractive"
-                    />
-                )}
+                <Script src="/pwa-register.js" strategy="afterInteractive" />
             </body>
         </html>
     );

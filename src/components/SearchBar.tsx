@@ -1,5 +1,6 @@
+//src/components/SearchBar.tsx
+// Search bar component with debounced movie search functionality
 'use client';
-
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDebounce } from '@/hooks/useDebounce';

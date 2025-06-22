@@ -1,7 +1,27 @@
+// Notification bell component for displaying notification count and settings
 'use client';
 
-import { useState } from 'react';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useState, useEffect } from 'react';
+import { useNotifications, StoredNotification } from '@/hooks/useNotifications';
+import { useRouter } from 'next/navigation';
+
+function timeAgo(dateString: string): string {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + ' years ago';
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + ' months ago';
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + ' days ago';
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + ' hours ago';
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + ' minutes ago';
+    return Math.floor(seconds) + ' seconds ago';
+}
 
 export default function NotificationBell() {
     const {
@@ -11,10 +31,22 @@ export default function NotificationBell() {
         isEnabled,
         canRequest,
         requestPermission,
-        lastNotification,
+        notifications,
+        unreadCount,
+        markAsRead,
     } = useNotifications();
+    const router = useRouter();
 
     const [showDropdown, setShowDropdown] = useState(false);
+
+    useEffect(() => {
+        if (showDropdown && unreadCount > 0) {
+            const unreadIds = notifications
+                .filter((n) => !n.isRead)
+                .map((n) => n.id);
+            markAsRead(unreadIds);
+        }
+    }, [showDropdown, unreadCount, notifications, markAsRead]);
 
     if (!isSupported) {
         return null; // Don't show anything if notifications aren't supported
@@ -30,6 +62,16 @@ export default function NotificationBell() {
             alert(
                 'Failed to get notification permission. Please check your browser settings.'
             );
+        }
+        setShowDropdown(false);
+    };
+
+    const handleNotificationClick = (notification: StoredNotification) => {
+        if (notification.data?.movieId) {
+            router.push(`/movie/${notification.data.movieId}`);
+        } else if (notification.data?.followerId) {
+            // Assuming you have a user profile page at /u/[username]
+            // You might need to fetch username from followerId or adjust the route
         }
         setShowDropdown(false);
     };
@@ -59,21 +101,16 @@ export default function NotificationBell() {
         if (isEnabled) {
             return (
                 <svg
-                    className="w-6 h-6"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
                     fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24">
+                    viewBox="0 0 24 24"
+                    stroke="currentColor">
                     <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M15 17h5l-5 5v-5z"
-                    />
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
                     />
                 </svg>
             );
@@ -82,15 +119,16 @@ export default function NotificationBell() {
         if (permission === 'denied') {
             return (
                 <svg
-                    className="w-6 h-6 text-red-500"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6 text-red-400"
                     fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24">
+                    viewBox="0 0 24 24"
+                    stroke="currentColor">
                     <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                        d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
                     />
                 </svg>
             );
@@ -98,21 +136,16 @@ export default function NotificationBell() {
 
         return (
             <svg
-                className="w-6 h-6 text-gray-400"
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-gray-400"
                 fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24">
+                viewBox="0 0 24 24"
+                stroke="currentColor">
                 <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M15 17h5l-5 5v-5z"
-                />
-                <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
                 />
             </svg>
         );
@@ -123,87 +156,84 @@ export default function NotificationBell() {
             <button
                 onClick={() => setShowDropdown(!showDropdown)}
                 className="relative p-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
-                title="Notification settings">
+                title="Notifications">
                 {getBellIcon()}
 
                 {/* Notification indicator */}
-                {lastNotification && (
-                    <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white dark:ring-gray-800"></span>
+                {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800"></span>
                 )}
             </button>
 
             {/* Dropdown */}
             {showDropdown && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
-                    <div className="p-4">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-[80vh] flex flex-col">
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                             Notifications
                         </h3>
+                    </div>
 
-                        {lastNotification && (
-                            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                                    Latest Notification
-                                </h4>
-                                <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
-                                    {lastNotification.title}
-                                </p>
-                                <p className="text-sm text-blue-700 dark:text-blue-300">
-                                    {lastNotification.body}
-                                </p>
+                    <div className="overflow-y-auto flex-grow">
+                        {notifications.length > 0 ? (
+                            notifications.map((notification) => (
+                                <div
+                                    key={notification.id}
+                                    onClick={() =>
+                                        handleNotificationClick(notification)
+                                    }
+                                    className={`p-4 border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${
+                                        !notification.isRead
+                                            ? 'bg-blue-50 dark:bg-blue-900/20'
+                                            : ''
+                                    }`}>
+                                    <p className="font-semibold text-gray-800 dark:text-gray-100">
+                                        {notification.title}
+                                    </p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                                        {notification.body}
+                                    </p>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                        {timeAgo(
+                                            notification.createdAt.toString()
+                                        )}
+                                    </p>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+                                {canRequest ? (
+                                    <>
+                                        <p className="mb-3">
+                                            Enable notifications to stay
+                                            updated.
+                                        </p>
+                                        <button
+                                            onClick={handleRequestPermission}
+                                            disabled={isLoading}
+                                            className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed">
+                                            {isLoading
+                                                ? 'Enabling...'
+                                                : 'Enable Notifications'}
+                                        </button>
+                                    </>
+                                ) : (
+                                    <p>You have no new notifications.</p>
+                                )}
                             </div>
                         )}
-
-                        <div className="space-y-3">
-                            {permission === 'default' && (
-                                <div className="text-center">
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                                        Enable notifications to stay updated
-                                        with your friends' activities
-                                    </p>
-                                    <button
-                                        onClick={handleRequestPermission}
-                                        disabled={isLoading}
-                                        className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed">
-                                        {isLoading
-                                            ? 'Enabling...'
-                                            : 'Enable Notifications'}
-                                    </button>
-                                </div>
-                            )}
-
-                            {permission === 'denied' && (
-                                <div className="text-center">
-                                    <p className="text-sm text-red-600 dark:text-red-400 mb-3">
-                                        Notifications are blocked. Please enable
-                                        them in your browser settings.
-                                    </p>
-                                    <button
-                                        onClick={() => {
-                                            alert(
-                                                'Please go to your browser settings and enable notifications for this site.'
-                                            );
-                                            setShowDropdown(false);
-                                        }}
-                                        className="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
-                                        How to Enable
-                                    </button>
-                                </div>
-                            )}
-
-                            {isEnabled && (
-                                <div className="text-center">
-                                    <p className="text-sm text-green-600 dark:text-green-400 mb-3">
-                                        ✓ Notifications are enabled
-                                    </p>
-                                    <a
-                                        href="/settings/notifications"
-                                        className="block w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600">
-                                        Manage Settings
-                                    </a>
-                                </div>
-                            )}
-                        </div>
+                    </div>
+                    <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+                        <a
+                            href="/settings/notifications"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                router.push('/settings/notifications');
+                                setShowDropdown(false);
+                            }}
+                            className="block text-center w-full px-4 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md">
+                            Manage Notification Settings
+                        </a>
                     </div>
                 </div>
             )}

@@ -12,6 +12,8 @@ import { auth, db } from '../firebase/config';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { requestNotificationPermission } from '@/firebase/fcm';
 
+// React context for managing user authentication state
+
 interface UserProfile {
     uid: string;
     email: string;
@@ -28,9 +30,15 @@ interface AuthContextType {
     user: User | null;
     userProfile: UserProfile | null;
     loading: boolean;
+    idToken: string | null;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+    user: null,
+    userProfile: null,
+    loading: true,
+    idToken: null,
+});
 
 interface AuthProviderProps {
     children: ReactNode;
@@ -40,6 +48,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const [user, setUser] = useState<User | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
+    const [idToken, setIdToken] = useState<string | null>(null);
 
     useEffect(() => {
         // Add a timeout to prevent infinite loading
@@ -51,6 +60,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setUser(user);
 
             if (user) {
+                const token = await user.getIdToken();
+                setIdToken(token);
+
                 // Fetch user profile from Firestore
                 try {
                     const userDocRef = doc(db, 'users', user.uid);
@@ -96,6 +108,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 }
             } else {
                 setUserProfile(null);
+                setIdToken(null);
             }
 
             clearTimeout(timeoutId);
@@ -109,7 +122,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         };
     }, []);
 
-    const value = { user, userProfile, loading };
+    const value = { user, userProfile, loading, idToken };
 
     return (
         <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

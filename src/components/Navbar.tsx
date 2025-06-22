@@ -11,6 +11,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { db } from '@/firebase/config';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import Image from 'next/image';
+import NotificationBell from './NotificationBell';
 
 interface SearchResult {
     type: 'movie' | 'user';
@@ -296,26 +297,29 @@ export default function Navbar() {
                 {/* User Menu */}
                 <div className="flex items-center space-x-4">
                     {user && userProfile && (
-                        <Link
-                            href={`/u/${userProfile.displayName}`}
-                            className="ml-4 flex items-center justify-center w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 transition-colors overflow-hidden border-2 border-indigo-400"
-                            title="Profile">
-                            {userProfile.photoURL ? (
-                                <Image
-                                    src={userProfile.photoURL}
-                                    alt="Profile"
-                                    width={40}
-                                    height={40}
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                <span className="text-white font-bold text-lg">
-                                    {userProfile.displayName
-                                        ?.charAt(0)
-                                        .toUpperCase()}
-                                </span>
-                            )}
-                        </Link>
+                        <>
+                            <NotificationBell />
+                            <Link
+                                href={`/u/${userProfile.displayName}`}
+                                className="ml-4 flex items-center justify-center w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 transition-colors overflow-hidden border-2 border-indigo-400"
+                                title="Profile">
+                                {userProfile.photoURL ? (
+                                    <Image
+                                        src={userProfile.photoURL}
+                                        alt="Profile"
+                                        width={40}
+                                        height={40}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <span className="text-white font-bold text-lg">
+                                        {userProfile.displayName
+                                            ?.charAt(0)
+                                            .toUpperCase()}
+                                    </span>
+                                )}
+                            </Link>
+                        </>
                     )}
                     {user ? (
                         <>

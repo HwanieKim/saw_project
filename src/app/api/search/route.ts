@@ -1,4 +1,5 @@
 //src/app/api/search/route
+// API endpoint for searching movies using TMDb API
 //serverside
 import { NextRequest, NextResponse } from 'next/server';
 

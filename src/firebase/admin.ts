@@ -1,3 +1,5 @@
+//src/firebase/admin.ts
+// Firebase Admin SDK configuration and core notification sending functions
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
@@ -10,8 +12,9 @@ if (!admin.apps.length) {
     };
 
     admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        databaseURL: `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseio.com`,
+        credential: admin.credential.cert(
+            serviceAccount as admin.ServiceAccount
+        ),
     });
 }
 
@@ -22,8 +25,8 @@ const db = getFirestore();
 export interface NotificationData {
     type:
         | 'movie_review'
-        | 'friend_request'
-        | 'watchlist_update'
+        | 'follower_gained'
+        | 'followed_user_review'
         | 'recommendation'
         | 'general';
     title: string;
@@ -129,7 +132,7 @@ export async function sendNotificationToTokens(
                 },
             };
 
-            const response = await admin.messaging().send(message);
+            await admin.messaging().send(message);
             results.push({ token, success: true });
             console.log(
                 `Notification sent successfully to token: ${token.substring(

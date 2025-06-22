@@ -1,4 +1,5 @@
 // src/hooks/useDebounce
+// React hook for debouncing values to reduce API calls
 //update the query value for every delay.
 import { useState, useEffect } from 'react';
 

@@ -1,3 +1,5 @@
+//src/firebase/notificationService.ts
+// High-level notification service functions for different notification types
 import {
     sendNotificationToUser,
     sendNotificationToUsers,
@@ -8,14 +10,40 @@ import {
 } from './admin';
 import { db } from './admin';
 
+/**
+ * Stores a notification in a user's subcollection.
+ */
+export async function storeNotification(
+    userId: string,
+    notification: NotificationData
+): Promise<void> {
+    try {
+        const userNotificationsRef = db
+            .collection('users')
+            .doc(userId)
+            .collection('notifications');
+        await userNotificationsRef.add({
+            ...notification,
+            createdAt: new Date(),
+            isRead: false,
+        });
+    } catch (error) {
+        console.error(
+            `Failed to store notification for user ${userId}:`,
+            error
+        );
+        // We don't re-throw the error because failing to store the notification
+        // shouldn't prevent the push notification from being sent.
+    }
+}
+
 // Movie review notification
 export async function sendMovieReviewNotification(
     reviewerId: string,
     movieId: string,
     movieTitle: string,
     reviewerName: string,
-    rating: number,
-    reviewText: string
+    rating: number
 ): Promise<void> {
     try {
         // Get users who have this movie in their watchlist
@@ -44,100 +72,102 @@ export async function sendMovieReviewNotification(
             imageUrl: `https://image.tmdb.org/t/p/w500/${movieId}`, // You'll need to get the actual poster path
         };
 
-        await sendNotificationToUsers(filteredUserIds, notification);
+        const pushResults = await sendNotificationToUsers(
+            filteredUserIds,
+            notification
+        );
+        for (const userId of filteredUserIds) {
+            await storeNotification(userId, notification);
+        }
+
         console.log(
-            `Sent movie review notification to ${filteredUserIds.length} users`
+            `Movie review notification stored for ${filteredUserIds.length} users. Push notifications sent: ${pushResults.success} successful, ${pushResults.failed} failed.`
         );
     } catch (error) {
         console.error('Error sending movie review notification:', error);
     }
 }
 
-// Friend request notification
-export async function sendFriendRequestNotification(
-    requesterId: string,
-    requesterName: string,
-    recipientId: string
+// Follower gained notification
+export async function sendFollowerGainedNotification(
+    followerId: string,
+    followerName: string,
+    followedUserId: string
 ): Promise<void> {
     try {
         const notification: NotificationData = {
-            type: 'friend_request',
-            title: 'New Friend Request',
-            body: `${requesterName} wants to be your friend on CineShelf`,
+            type: 'follower_gained',
+            title: 'New Follower',
+            body: `${followerName} started following you`,
             data: {
-                requesterId,
-                requesterName,
-                type: 'friend_request',
+                followerId,
+                followerName,
+                type: 'follower_gained',
             },
         };
 
-        await sendNotificationToUser(recipientId, notification);
-        console.log(`Sent friend request notification to user: ${recipientId}`);
+        const pushSent = await sendNotificationToUser(
+            followedUserId,
+            notification
+        );
+        await storeNotification(followedUserId, notification);
+
+        if (pushSent) {
+            console.log(
+                `Sent push and stored in-app notification for user: ${followedUserId}`
+            );
+        } else {
+            console.log(
+                `Stored in-app notification for user ${followedUserId} (no push notification sent).`
+            );
+        }
     } catch (error) {
-        console.error('Error sending friend request notification:', error);
+        console.error('Error sending follower gained notification:', error);
     }
 }
 
-// Friend request accepted notification
-export async function sendFriendRequestAcceptedNotification(
-    accepterId: string,
-    accepterName: string,
-    requesterId: string
+// Followed user reviewed movie notification
+export async function sendFollowedUserReviewNotification(
+    reviewerId: string,
+    reviewerName: string,
+    movieId: string,
+    movieTitle: string,
+    rating: number,
+    followerIds: string[]
 ): Promise<void> {
     try {
+        if (followerIds.length === 0) return;
+
         const notification: NotificationData = {
-            type: 'friend_request',
-            title: 'Friend Request Accepted',
-            body: `${accepterName} accepted your friend request`,
+            type: 'followed_user_review',
+            title: `${reviewerName} reviewed ${movieTitle}`,
+            body: `${reviewerName} rated "${movieTitle}" ${rating}/5 stars`,
             data: {
-                accepterId,
-                accepterName,
-                type: 'friend_request_accepted',
+                reviewerId,
+                reviewerName,
+                movieId,
+                movieTitle,
+                rating: rating.toString(),
+                type: 'followed_user_review',
             },
         };
 
-        await sendNotificationToUser(requesterId, notification);
+        const pushResults = await sendNotificationToUsers(
+            followerIds,
+            notification
+        );
+        for (const followerId of followerIds) {
+            await storeNotification(followerId, notification);
+        }
+
         console.log(
-            `Sent friend request accepted notification to user: ${requesterId}`
+            `Followed user review notification stored for ${followerIds.length} followers. Push notifications sent: ${pushResults.success} successful, ${pushResults.failed} failed.`
         );
     } catch (error) {
         console.error(
-            'Error sending friend request accepted notification:',
+            'Error sending followed user review notification:',
             error
         );
-    }
-}
-
-// Watchlist update notification (when a friend adds a movie to watchlist)
-export async function sendWatchlistUpdateNotification(
-    userId: string,
-    userName: string,
-    movieId: string,
-    movieTitle: string,
-    friendIds: string[]
-): Promise<void> {
-    try {
-        if (friendIds.length === 0) return;
-
-        const notification: NotificationData = {
-            type: 'watchlist_update',
-            title: 'Watchlist Update',
-            body: `${userName} added "${movieTitle}" to their watchlist`,
-            data: {
-                userId,
-                userName,
-                movieId,
-                movieTitle,
-                type: 'watchlist_update',
-            },
-        };
-
-        await sendNotificationToUsers(friendIds, notification);
-        console.log(
-            `Sent watchlist update notification to ${friendIds.length} friends`
-        );
-    } catch (error) {
-        console.error('Error sending watchlist update notification:', error);
     }
 }
 
@@ -167,10 +197,21 @@ export async function sendMovieRecommendationNotification(
             },
         };
 
-        await sendNotificationToUser(recipientId, notification);
-        console.log(
-            `Sent movie recommendation notification to user: ${recipientId}`
+        const pushSent = await sendNotificationToUser(
+            recipientId,
+            notification
         );
+        await storeNotification(recipientId, notification);
+
+        if (pushSent) {
+            console.log(
+                `Sent push and stored in-app notification for user: ${recipientId}`
+            );
+        } else {
+            console.log(
+                `Stored in-app notification for user ${recipientId} (no push notification sent).`
+            );
+        }
     } catch (error) {
         console.error(
             'Error sending movie recommendation notification:',
@@ -191,11 +232,24 @@ export async function sendGeneralNotification(
             type: 'general',
             title,
             body,
-            data: data || {},
+            data: {
+                ...data,
+                type: 'general',
+            },
         };
 
-        await sendNotificationToUser(userId, notification);
-        console.log(`Sent general notification to user: ${userId}`);
+        const pushSent = await sendNotificationToUser(userId, notification);
+        await storeNotification(userId, notification);
+
+        if (pushSent) {
+            console.log(
+                `Sent push and stored in-app general notification for user: ${userId}`
+            );
+        } else {
+            console.log(
+                `Stored in-app general notification for user ${userId} (no push notification sent).`
+            );
+        }
     } catch (error) {
         console.error('Error sending general notification:', error);
     }
@@ -236,8 +290,8 @@ export async function sendBulkNotification(
 // Notification preferences management
 export interface NotificationPreferences {
     movieReviews: boolean;
-    friendRequests: boolean;
-    watchlistUpdates: boolean;
+    followerGained: boolean;
+    followedUserReviews: boolean;
     recommendations: boolean;
     general: boolean;
 }
@@ -259,8 +313,8 @@ export async function getUserNotificationPreferences(
         // Return default preferences
         return {
             movieReviews: true,
-            friendRequests: true,
-            watchlistUpdates: true,
+            followerGained: true,
+            followedUserReviews: true,
             recommendations: true,
             general: true,
         };
@@ -268,8 +322,8 @@ export async function getUserNotificationPreferences(
         console.error('Error getting user notification preferences:', error);
         return {
             movieReviews: true,
-            friendRequests: true,
-            watchlistUpdates: true,
+            followerGained: true,
+            followedUserReviews: true,
             recommendations: true,
             general: true,
         };
@@ -314,8 +368,7 @@ export async function sendMovieReviewNotificationWithPreference(
     movieId: string,
     movieTitle: string,
     reviewerName: string,
-    rating: number,
-    reviewText: string
+    rating: number
 ): Promise<void> {
     try {
         const watchlistSnapshot = await db
@@ -351,8 +404,12 @@ export async function sendMovieReviewNotificationWithPreference(
         };
 
         await sendNotificationToUsers(usersToNotify, notification);
+        for (const userId of usersToNotify) {
+            await storeNotification(userId, notification);
+        }
+
         console.log(
-            `Sent movie review notification to ${usersToNotify.length} users (with preferences)`
+            `Sent and stored movie review notification to ${usersToNotify.length} users (with preferences)`
         );
     } catch (error) {
         console.error(
@@ -363,8 +420,4 @@ export async function sendMovieReviewNotificationWithPreference(
 }
 
 // Export the token management functions
-export {
-    storeUserNotificationToken,
-    getUserNotificationTokens,
-    removeUserNotificationToken,
-};
+export { getUserNotificationTokens, removeUserNotificationToken };
