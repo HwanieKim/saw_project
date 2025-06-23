@@ -1,27 +1,8 @@
 // Notification bell component for displaying notification count and settings
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useNotifications, StoredNotification } from '@/hooks/useNotifications';
-import { useRouter } from 'next/navigation';
-
-function timeAgo(dateString: string): string {
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + ' years ago';
-    interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + ' months ago';
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + ' days ago';
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + ' hours ago';
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + ' minutes ago';
-    return Math.floor(seconds) + ' seconds ago';
-}
+import { useState } from 'react';
+import { useNotifications } from '@/hooks/useNotifications';
 
 export default function NotificationBell() {
     const {
@@ -29,52 +10,15 @@ export default function NotificationBell() {
         permission,
         isLoading,
         isEnabled,
-        canRequest,
-        requestPermission,
         notifications,
-        unreadCount,
-        markAsRead,
+        removeNotification,
+        deleteNotification,
     } = useNotifications();
-    const router = useRouter();
-
     const [showDropdown, setShowDropdown] = useState(false);
 
-    useEffect(() => {
-        if (showDropdown && unreadCount > 0) {
-            const unreadIds = notifications
-                .filter((n) => !n.isRead)
-                .map((n) => n.id);
-            markAsRead(unreadIds);
-        }
-    }, [showDropdown, unreadCount, notifications, markAsRead]);
-
     if (!isSupported) {
-        return null; // Don't show anything if notifications aren't supported
+        return null;
     }
-
-    const handleRequestPermission = async () => {
-        const success = await requestPermission();
-        if (success) {
-            alert(
-                'Notification permission granted! You will now receive notifications.'
-            );
-        } else {
-            alert(
-                'Failed to get notification permission. Please check your browser settings.'
-            );
-        }
-        setShowDropdown(false);
-    };
-
-    const handleNotificationClick = (notification: StoredNotification) => {
-        if (notification.data?.movieId) {
-            router.push(`/movie/${notification.data.movieId}`);
-        } else if (notification.data?.followerId) {
-            // Assuming you have a user profile page at /u/[username]
-            // You might need to fetch username from followerId or adjust the route
-        }
-        setShowDropdown(false);
-    };
 
     const getBellIcon = () => {
         if (isLoading) {
@@ -156,94 +100,59 @@ export default function NotificationBell() {
             <button
                 onClick={() => setShowDropdown(!showDropdown)}
                 className="relative p-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
-                title="Notifications">
+                title="Notification settings">
                 {getBellIcon()}
 
-                {/* Notification indicator */}
-                {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800"></span>
+                {notifications.length > 0 && (
+                    <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white dark:ring-gray-800"></span>
                 )}
             </button>
 
-            {/* Dropdown */}
             {showDropdown && (
-                <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-[80vh] flex flex-col">
-                    <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                    <div className="p-4">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                             Notifications
                         </h3>
-                    </div>
-
-                    <div className="overflow-y-auto flex-grow">
-                        {notifications.length > 0 ? (
-                            notifications.map((notification) => (
-                                <div
-                                    key={notification.id}
-                                    onClick={() =>
-                                        handleNotificationClick(notification)
-                                    }
-                                    className={`p-4 border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${
-                                        !notification.isRead
-                                            ? 'bg-blue-50 dark:bg-blue-900/20'
-                                            : ''
-                                    }`}>
-                                    <p className="font-semibold text-gray-800 dark:text-gray-100">
-                                        {notification.title}
-                                    </p>
-                                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                                        {notification.body}
-                                    </p>
-                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                        {timeAgo(
-                                            notification.createdAt.toString()
-                                        )}
-                                    </p>
-                                </div>
-                            ))
+                        {notifications.length === 0 ? (
+                            <div className="text-center text-gray-400">
+                                No notifications.
+                            </div>
                         ) : (
-                            <div className="p-6 text-center text-gray-500 dark:text-gray-400">
-                                {canRequest ? (
-                                    <>
-                                        <p className="mb-3">
-                                            Enable notifications to stay
-                                            updated.
-                                        </p>
+                            <div className="space-y-3">
+                                {notifications.map((notification, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="mb-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg relative">
+                                        <div className="font-medium text-blue-900 dark:text-blue-100 mb-1">
+                                            {notification.title}
+                                        </div>
+                                        <div className="text-sm text-blue-700 dark:text-blue-300">
+                                            {notification.body}
+                                        </div>
                                         <button
-                                            onClick={handleRequestPermission}
-                                            disabled={isLoading}
-                                            className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed">
-                                            {isLoading
-                                                ? 'Enabling...'
-                                                : 'Enable Notifications'}
+                                            onClick={() => {
+                                                deleteNotification(
+                                                    notification.id
+                                                );
+                                                removeNotification(idx);
+                                            }}
+                                            className="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs">
+                                            delete
                                         </button>
-                                    </>
-                                ) : (
-                                    <p>You have no new notifications.</p>
-                                )}
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>
                     <div className="p-2 border-t border-gray-200 dark:border-gray-700">
                         <a
                             href="/settings/notifications"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                router.push('/settings/notifications');
-                                setShowDropdown(false);
-                            }}
-                            className="block text-center w-full px-4 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md">
+                            className="block text-center text-indigo-600 dark:text-indigo-400 hover:underline text-sm font-medium">
                             Manage Notification Settings
                         </a>
                     </div>
                 </div>
-            )}
-
-            {/* Backdrop */}
-            {showDropdown && (
-                <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowDropdown(false)}
-                />
             )}
         </div>
     );

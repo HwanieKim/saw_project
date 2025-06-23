@@ -7,7 +7,14 @@ import {
 } from '@/firebase/fcm';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase/config'; // Client-side Firestore instance
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import {
+    collection,
+    query,
+    onSnapshot,
+    orderBy,
+    deleteDoc,
+    doc,
+} from 'firebase/firestore';
 
 interface NotificationPreferences {
     movieReviews: boolean;
@@ -39,8 +46,6 @@ export function useNotifications() {
     const [isLoading, setIsLoading] = useState(false);
     const [preferences, setPreferences] =
         useState<NotificationPreferences | null>(null);
-    const [lastNotification, setLastNotification] =
-        useState<NotificationMessage | null>(null);
     const [notifications, setNotifications] = useState<StoredNotification[]>(
         []
     );
@@ -309,6 +314,23 @@ export function useNotifications() {
         }
     }, [user, token, idToken]);
 
+    // Add notification to the list
+    const addNotification = useCallback((notification: NotificationMessage) => {
+        const stored: StoredNotification = {
+            ...notification,
+            id: crypto.randomUUID(),
+            createdAt: new Date().toISOString(),
+            isRead: false,
+            type: notification.data?.type || 'general',
+        };
+        setNotifications((prev) => [stored, ...prev]);
+    }, []);
+
+    // Remove notification by index
+    const removeNotification = useCallback((index: number) => {
+        setNotifications((prev) => prev.filter((_, i) => i !== index));
+    }, []);
+
     // Handle foreground messages
     useEffect(() => {
         if (!isSupported) return;
@@ -319,10 +341,7 @@ export function useNotifications() {
                 body: payload.notification?.body || '',
                 data: payload.data,
             };
-
-            setLastNotification(notification);
-            // No need to fetch manually, onSnapshot will handle it.
-
+            addNotification(notification);
             // Show browser notification if permission is granted
             if (Notification.permission === 'granted') {
                 new Notification(notification.title, {
@@ -333,9 +352,8 @@ export function useNotifications() {
                 });
             }
         });
-
         return unsubscribe;
-    }, [isSupported]);
+    }, [isSupported, addNotification]);
 
     // Load preferences when user changes
     useEffect(() => {
@@ -361,6 +379,21 @@ export function useNotifications() {
         }
     }, [user, isSupported, permission, requestPermission]);
 
+    // Remove notification from Firestore
+    const deleteNotification = useCallback(
+        async (notificationId: string) => {
+            if (!user) return;
+            try {
+                await deleteDoc(
+                    doc(db, 'users', user.uid, 'notifications', notificationId)
+                );
+            } catch (error) {
+                console.error('Error deleting notification:', error);
+            }
+        },
+        [user]
+    );
+
     return {
         // State
         isSupported,
@@ -368,7 +401,6 @@ export function useNotifications() {
         token,
         isLoading,
         preferences,
-        lastNotification,
         notifications,
         unreadCount,
 
@@ -378,6 +410,9 @@ export function useNotifications() {
         removeToken,
         loadPreferences,
         markAsRead,
+        addNotification,
+        removeNotification,
+        deleteNotification,
 
         // Computed
         isEnabled: permission === 'granted' && !!token,

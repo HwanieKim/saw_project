@@ -47,7 +47,6 @@ export default function HomePage() {
     // Use the debouncer on the user's query
     const debouncedQuery = useDebounce(searchQuery, 300);
 
-    
     // Effect to fetch search results when the debounced query changes
     useEffect(() => {
         if (debouncedQuery.trim().length < 2) {
@@ -284,19 +283,6 @@ export default function HomePage() {
                     )}
                 </div>
             </section>
-
-            {/* Dashboard Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Main Content - Recommendations */}
-                <div className="lg:col-span-2">
-                    {/* Placeholder for RecommendedMovies component */}
-                </div>
-
-                {/* Sidebar - Social Feed */}
-                <div className="lg:col-span-1">
-                    {/* Placeholder for SocialFeed component */}
-                </div>
-            </div>
 
             {/* Quick Actions */}
             <section className="text-center py-8">

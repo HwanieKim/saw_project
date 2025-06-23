@@ -1,3 +1,5 @@
+// src/app/api/genres/route.ts
+// This file is used to fetch the genres from the TMDb API
 import { NextResponse } from 'next/server';
 
 export async function GET() {

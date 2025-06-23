@@ -4,7 +4,6 @@ import {
     sendNotificationToUser,
     sendNotificationToUsers,
     NotificationData,
-    storeUserNotificationToken,
     getUserNotificationTokens,
     removeUserNotificationToken,
 } from './admin';

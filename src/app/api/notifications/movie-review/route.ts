@@ -5,14 +5,8 @@ import { sendMovieReviewNotificationWithPreference } from '@/firebase/notificati
 
 export async function POST(req: NextRequest) {
     try {
-        const {
-            reviewerId,
-            movieId,
-            movieTitle,
-            reviewerName,
-            rating,
-            reviewText,
-        } = await req.json();
+        const { reviewerId, movieId, movieTitle, reviewerName, rating } =
+            await req.json();
 
         if (
             !reviewerId ||
@@ -32,8 +26,7 @@ export async function POST(req: NextRequest) {
             movieId,
             movieTitle,
             reviewerName,
-            rating,
-            reviewText
+            rating
         );
 
         return NextResponse.json({

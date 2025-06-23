@@ -1,5 +1,5 @@
 //src/app/movie/[id]/route.ts
-
+// This file is used to fetch the movie details from the TMDb API
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteContext {

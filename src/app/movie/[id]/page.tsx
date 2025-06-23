@@ -200,18 +200,18 @@ export default async function MoviePage({ params }: MoviePageProps) {
                                                         : '/placeholder-avatar.png'
                                                 }
                                                 alt={actor.name}
-                                                fill
-                                                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                                width={185}
+                                                height={278}
+                                                className="object-cover w-full h-full"
                                             />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                                         </div>
-                                        <div className="mt-3 text-center">
-                                            <p className="font-semibold text-white text-sm truncate group-hover:text-indigo-300 transition-colors">
+                                        <div className="mt-2 text-center">
+                                            <div className="font-semibold text-white truncate">
                                                 {actor.name}
-                                            </p>
-                                            <p className="text-xs text-gray-400 truncate mt-1">
+                                            </div>
+                                            <div className="text-xs text-gray-400 truncate">
                                                 {actor.character}
-                                            </p>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -223,15 +223,12 @@ export default async function MoviePage({ params }: MoviePageProps) {
                 {trailer && (
                     <div className="mt-12">
                         <h2 className="text-2xl font-semibold mb-6">Trailer</h2>
-                        <div
-                            className="relative w-full rounded-lg overflow-hidden shadow-2xl"
-                            style={{ paddingBottom: '56.25%' }}>
+                        <div className="aspect-w-16 aspect-h-9">
                             <iframe
                                 src={`https://www.youtube.com/embed/${trailer.key}`}
-                                title={trailer.name}
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                title="YouTube trailer"
                                 allowFullScreen
-                                className="absolute top-0 left-0 w-full h-full"></iframe>
+                                className="w-full h-190 rounded-lg border-0"></iframe>
                         </div>
                     </div>
                 )}

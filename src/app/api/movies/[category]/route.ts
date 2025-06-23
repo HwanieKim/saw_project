@@ -1,3 +1,5 @@
+// src/app/api/movies/[category]/route.ts
+// This file is used to fetch the movies from the TMDb API
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
