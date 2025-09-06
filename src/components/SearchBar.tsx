@@ -26,7 +26,7 @@ export default function SearchBar() {
         const handleClickOutside = (event: MouseEvent) => {
             if (
                 searchRef.current &&
-                !searchRef.current.contains(event.target as Node)
+                !searchRef.current.contains(event.target as Node)  //contains take node as argument 
             ) {
                 setShowResults(false);
             }

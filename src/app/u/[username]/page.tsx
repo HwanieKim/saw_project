@@ -643,10 +643,13 @@ export default function UserProfilePage() {
                                     className="bg-gray-800 rounded-lg p-4 flex gap-4 items-start">
                                     <div className="w-16 h-24 bg-gray-700 rounded flex-shrink-0 overflow-hidden">
                                         {review.moviePoster ? (
-                                            <img
+                                            <Image
                                                 src={`https://image.tmdb.org/t/p/w92${review.moviePoster}`}
                                                 alt={review.movieTitle}
+                                                width={64}
+                                                height={96}
                                                 className="w-full h-full object-cover rounded"
+                                                sizes="64px"
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">

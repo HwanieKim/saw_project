@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { Review, ReviewFormData } from '@/app/types';
@@ -43,7 +43,7 @@ export default function MovieReviews({
               ).toFixed(1)
             : null;
 
-    const fetchReviews = async () => {
+    const fetchReviews = useCallback(async () => {
         try {
             const reviewsRef = collection(db, 'reviews');
             const q = query(
@@ -63,11 +63,11 @@ export default function MovieReviews({
         } finally {
             setLoading(false);
         }
-    };
+    }, [movieId, onReviewsUpdate]);
 
     useEffect(() => {
         fetchReviews();
-    }, [movieId]);
+    }, [fetchReviews]);
 
     // Handle new review submission
     const handleReviewSubmit = async (data: ReviewFormData) => {
