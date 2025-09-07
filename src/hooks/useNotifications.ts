@@ -51,7 +51,7 @@ export function useNotifications() {
 
     const { user, userProfile, idToken } = useAuth();
 
-    // 🔧 토큰은 AuthContext에서 가져오기 (상태 관리 단순화)
+    // fcm token from user profile
     const token = userProfile?.fcmToken || null;
     const isEnabled = permission === 'granted' && !!token;
 
@@ -202,7 +202,7 @@ export function useNotifications() {
     // Update notification preferences
     const updatePreferences = useCallback(
         async (newPreferences: Partial<NotificationPreferences>) => {
-            if (!user || !idToken) return;
+            if (!user || !idToken) return false;
 
             try {
                 console.log('Updating preferences:', newPreferences);
@@ -225,7 +225,7 @@ export function useNotifications() {
                 // Update local state
                 setPreferences((prev)=>{
                     const updated = {
-                        ...(prev||[]),
+                        ...(prev||{}), // ensure prev is an object
                         ...newPreferences,
                     } as NotificationPreferences
                     console.log("Updated preferences:", updated);
@@ -244,12 +244,12 @@ export function useNotifications() {
         [user, idToken]
     );
 
-    // 🔧 토큰 제거 (AuthContext와 notifications 시스템 모두에서 제거)
+    // Remove FCM token from backend and update state
     const removeToken = useCallback(async () => {
         if (!user || !token || !idToken) return;
 
         try {
-            // userNotificationTokens 컬렉션에서 제거
+            // remove from collection userNotificationTokens
             await fetch('/api/notifications/token', {
                 method: 'DELETE',
                 headers: {
@@ -261,9 +261,9 @@ export function useNotifications() {
                 }),
             });
 
-            // 권한 상태 업데이트 (토큰은 AuthContext에서 관리)
+            // Update permission status (token is managed in AuthContext)
             setPermission('denied');
-            console.log('✅ FCM token removed from notifications system');
+            console.log('FCM token removed from notifications system');
         } catch (error) {
             console.error('Error removing notification token:', error);
         }
@@ -317,7 +317,7 @@ export function useNotifications() {
         }
     }, [user, loadPreferences]);
 
-    // 🔧 자동 권한 요청 (AuthContext에 토큰이 있으면 스킵)
+    // Prompt for permission if supported, user is logged in, permission is default, and no token
     useEffect(() => {
         if (user && isSupported && permission === 'default' && !token) {
             const askForPermission = async () => {

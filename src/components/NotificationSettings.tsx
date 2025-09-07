@@ -30,21 +30,6 @@ export default function NotificationSettings() {
         useState<NotificationPreferences | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
 
-    // log state for debugging
-    console.log('NotificationSettings Debug:', {
-        isSupported,
-        permission,
-        isLoading,
-        preferences,
-        isEnabled,
-        canRequest,
-        preferencesType: typeof preferences,
-        preferencesIsNull: preferences === null,
-        preferencesKeys: preferences ? Object.keys(preferences) : 'null',
-        showToggles: isEnabled && preferences,
-        token: !!token,
-    });
-
     useEffect(() => {
         if (preferences) {
             setLocalPreferences(preferences);
@@ -67,14 +52,14 @@ export default function NotificationSettings() {
             const success = await updatePreferences({ [key]: value });
             if (!success) {
                 console.error('Rollback preference change:', key);
-                setLocalPreferences(prev); // rollback
+                setLocalPreferences(prev);
                 alert('Failed to update notification preference.');
             } else {
                 console.log(`Preference ${key} updated:`, value);
             }
         } catch (error) {
             console.error('Error updating preference:', error);
-            setLocalPreferences(prev); // rollback
+            setLocalPreferences(prev);
             alert('Failed to update notification preference.');
         } finally {
             setIsUpdating(false);
@@ -111,7 +96,6 @@ export default function NotificationSettings() {
                 Notification Settings
             </h2>
 
-   
             {/* Permission Status */}
             <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">
@@ -154,23 +138,25 @@ export default function NotificationSettings() {
                 </div>
             </div>
 
+    
             {permission !== 'granted' && (
                 <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/20 rounded">
                     <p className="text-yellow-800 dark:text-yellow-200">
-                        ⚠️ Notification are not allowed. Grant permission to see notification toggles.
+                        ⚠️ Notifications are not allowed. Grant permission to
+                        see notification toggles.
                     </p>
                 </div>
             )}
 
-            {permission !== 'granted' && !localPreferences && (
-                <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/20 rounded">
-                    <p className="text-red-800 dark:text-red-200">
-                        ⚠️ preferences not loaded yet - toggles will appear once preferences are available.
+            {permission === 'granted' && !localPreferences && (
+                <div className="mb-4 p-3 bg-blue-100 dark:bg-blue-900/20 rounded">
+                    <p className="text-blue-800 dark:text-blue-200">
+                        🔄 Loading preferences...
                     </p>
                 </div>
             )}
 
-            {/* Notification Preferences*/}
+            {/* Notification Preferences */}
             {permission === 'granted' && localPreferences && (
                 <div>
                     <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">
@@ -246,8 +232,6 @@ export default function NotificationSettings() {
                 </div>
             )}
 
-            
-
             {/* Help Text */}
             {!isEnabled && (
                 <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -281,18 +265,7 @@ export default function NotificationSettings() {
                         Notifications are currently blocked. To enable them:
                     </p>
                     <ol className="text-sm text-yellow-800 dark:text-yellow-200 space-y-2 list-decimal list-inside">
-                        <li>
-                            Click the lock/info icon in your browser&apos;s
-                            address bar
-                        </li>
-                        <li>
-                            Find &quot;Notifications&quot; in the site settings
-                        </li>
-                        <li>
-                            Change the setting from &quot;Block&quot; to
-                            &quot;Allow&quot;
-                        </li>
-                        <li>Refresh this page and try again</li>
+                        Click "Enable Notifications" above and allow notifications in your browser.
                     </ol>
                 </div>
             )}

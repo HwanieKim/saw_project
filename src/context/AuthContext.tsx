@@ -99,7 +99,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                                 setUserProfile(prev => prev ? {
                                     ...prev,
                                     fcmToken: currentToken
-                                } : null);
+                                } : prev);
 
                             } 
                             // If no token in Firestore, but we have one now, save it
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                                 setUserProfile(prev => prev ? {
                                     ...prev,
                                     fcmToken: currentToken
-                                } : null);
+                                } : prev);
                             }
                         } catch (fcmerror) {
                             console.error(
