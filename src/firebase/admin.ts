@@ -227,7 +227,7 @@ export async function storeUserNotificationToken(
             // Update existing token
             await existingToken.docs[0].ref.update({
                 userId,
-                lastUsed: new Date()
+                lastUsed: new Date(),
             });
         } else {
             // Create new token entry
@@ -235,7 +235,7 @@ export async function storeUserNotificationToken(
                 userId,
                 token,
                 createdAt: new Date(),
-                lastUsed: new Date()
+                lastUsed: new Date(),
             });
         }
 
@@ -246,17 +246,25 @@ export async function storeUserNotificationToken(
     }
 }
 
-// Remove invalid token
+// Remove invalid token in all docs
 async function removeInvalidToken(token: string): Promise<void> {
     try {
-        const tokenDoc = await db
+        const tokenDocs = await db
             .collection('userNotificationTokens')
             .where('token', '==', token)
             .get();
 
-        if (!tokenDoc.empty) {
-            await tokenDoc.docs[0].ref.delete();
-            console.log(`Removed invalid token: ${token.substring(0, 20)}...`);
+        if (!tokenDocs.empty) {
+            const batch = db.batch();
+            tokenDocs.docs.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+            console.log(
+                `Removed ${
+                    tokenDocs.docs.length
+                } invalid token(s): ${token.substring(0, 20)}...`
+            );
         }
     } catch (error) {
         console.error('Error removing invalid token:', error);

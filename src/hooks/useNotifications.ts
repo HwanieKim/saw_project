@@ -1,9 +1,7 @@
 //src/hooks/useNotifications.ts
 // React hook for managing notification permissions, tokens, and preferences
 import { useState, useEffect, useCallback } from 'react';
-import {
-    onForegroundMessage,
-} from '@/firebase/fcm';
+import { onForegroundMessage } from '@/firebase/fcm';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase/config'; // Client-side Firestore instance
 import {
@@ -158,20 +156,17 @@ export function useNotifications() {
     const requestPermission = useCallback(async () => {
         if (!isSupported) return false;
 
+        // Check if permission is already granted
+        if (Notification.permission === 'granted') {
+            setPermission('granted');
+            return true;
+        }
+
         setIsLoading(true);
         try {
-            // ask for browser permission
             const permission = await Notification.requestPermission();
             setPermission(permission);
-
-            if (permission === 'granted') {
-                console.log(
-                    'Permission granted, AuthContext will handle token'
-                );
-                return true;
-            }
-
-            return false;
+            return permission === 'granted';
         } catch (error) {
             console.error('Error requesting notification permission:', error);
             return false;
@@ -217,21 +212,21 @@ export function useNotifications() {
                         preferences: newPreferences,
                     }),
                 });
-                
-                if (!response.ok){
-                    console.error("api request failed", response.status)
+
+                if (!response.ok) {
+                    console.error('api request failed', response.status);
                     return false;
                 }
                 // Update local state
-                setPreferences((prev)=>{
+                setPreferences((prev) => {
                     const updated = {
-                        ...(prev||{}), // ensure prev is an object
+                        ...(prev || {}), // ensure prev is an object
                         ...newPreferences,
-                    } as NotificationPreferences
-                    console.log("Updated preferences:", updated);
-                    return updated
-                })
-               
+                    } as NotificationPreferences;
+                    console.log('Updated preferences:', updated);
+                    return updated;
+                });
+
                 return true;
             } catch (error) {
                 console.error(

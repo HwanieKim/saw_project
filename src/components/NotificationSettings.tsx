@@ -265,7 +265,7 @@ export default function NotificationSettings() {
                         Notifications are currently blocked. To enable them:
                     </p>
                     <ol className="text-sm text-yellow-800 dark:text-yellow-200 space-y-2 list-decimal list-inside">
-                        Click "Enable Notifications" above and allow notifications in your browser.
+                        Click &quot;Enable Notifications&quot; above and allow notifications in your browser.
                     </ol>
                 </div>
             )}
