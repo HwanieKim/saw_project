@@ -57,6 +57,7 @@ export interface UserProfile {
     followers: string[];
     following: string[];
     createdAt: Date;
+    fcmToken?: string;
 }
 
 export interface Activity {

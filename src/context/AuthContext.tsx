@@ -55,7 +55,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const timeoutId = setTimeout(() => {
             setLoading(false);
         }, 5000); // 5 second timeout
-
+        
+        // Listen for auth state changes
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setUser(user);
 
@@ -82,19 +83,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
                         });
 
                         try {
+                            // Request notification permission and get FCM token
                             const currentToken =
                                 await requestNotificationPermission();
-                            if (
-                                currentToken &&
-                                data.fcmToken !== currentToken
-                            ) {
+                            
+                                // If we have a new token, update Firestore
+                                if (currentToken && data.fcmToken !== currentToken) {
+                                // Update Firestore with the new token
+                                
                                 await updateDoc(userDocRef, {
                                     fcmToken: currentToken,
                                 });
-                            } else if (currentToken && !data.fcmToken) {
+                                
+                                // Also update local state
+                                setUserProfile(prev => prev ? {
+                                    ...prev,
+                                    fcmToken: currentToken
+                                } : null);
+
+                            } 
+                            // If no token in Firestore, but we have one now, save it
+                            else if (currentToken && !data.fcmToken) {
                                 await updateDoc(userDocRef, {
                                     fcmToken: currentToken,
                                 });
+
+                                setUserProfile(prev => prev ? {
+                                    ...prev,
+                                    fcmToken: currentToken
+                                } : null);
                             }
                         } catch (fcmerror) {
                             console.error(

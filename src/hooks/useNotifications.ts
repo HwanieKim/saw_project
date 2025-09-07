@@ -2,7 +2,6 @@
 // React hook for managing notification permissions, tokens, and preferences
 import { useState, useEffect, useCallback } from 'react';
 import {
-    requestNotificationPermission,
     onForegroundMessage,
 } from '@/firebase/fcm';
 import { useAuth } from '@/context/AuthContext';
@@ -42,7 +41,6 @@ export function useNotifications() {
     const [isSupported, setIsSupported] = useState(false);
     const [permission, setPermission] =
         useState<NotificationPermission>('default');
-    const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [preferences, setPreferences] =
         useState<NotificationPreferences | null>(null);
@@ -50,7 +48,12 @@ export function useNotifications() {
         []
     );
     const [unreadCount, setUnreadCount] = useState(0);
-    const { user, idToken } = useAuth();
+
+    const { user, userProfile, idToken } = useAuth();
+
+    // 🔧 토큰은 AuthContext에서 가져오기 (상태 관리 단순화)
+    const token = userProfile?.fcmToken || null;
+    const isEnabled = permission === 'granted' && !!token;
 
     // Check if notifications are supported
     useEffect(() => {
@@ -114,57 +117,12 @@ export function useNotifications() {
         return () => unsubscribe();
     }, [user]);
 
-    // Check and sync token status when user changes
+    // sync permission state when userProfile.fcmToken changes
     useEffect(() => {
-        if (!user || !idToken || !isSupported) return;
-
-        const checkAndSyncToken = async () => {
-            try {
-                // Check if user has stored tokens in backend
-                const response = await fetch('/api/notifications/token', {
-                    headers: {
-                        Authorization: `Bearer ${idToken}`,
-                    },
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    const hasStoredTokens = data.hasTokens;
-
-                    // If browser permission is granted but no stored tokens, get a new token
-                    if (
-                        permission === 'granted' &&
-                        !hasStoredTokens &&
-                        !token
-                    ) {
-                        console.log(
-                            'Permission granted but no stored tokens. Getting new token...'
-                        );
-                        const fcmToken = await requestNotificationPermission();
-                        if (fcmToken) {
-                            setToken(fcmToken);
-                            // Store token in backend
-                            await fetch('/api/notifications/token', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    Authorization: `Bearer ${idToken}`,
-                                },
-                                body: JSON.stringify({
-                                    token: fcmToken,
-                                    platform: 'web',
-                                }),
-                            });
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Error checking token status:', error);
-            }
-        };
-
-        checkAndSyncToken();
-    }, [user, idToken, isSupported, permission, token]);
+        if (isSupported) {
+            setPermission(Notification.permission);
+        }
+    }, [isSupported, userProfile?.fcmToken]); // re check permission when userProfile.fcmToken changes
 
     // Mark notifications as read
     const markAsRead = useCallback(
@@ -197,33 +155,22 @@ export function useNotifications() {
         [user, idToken]
     );
 
-    // Request notification permission and get token
     const requestPermission = useCallback(async () => {
-        if (!isSupported || !user || !idToken) return false;
+        if (!isSupported) return false;
 
         setIsLoading(true);
         try {
-            const fcmToken = await requestNotificationPermission();
+            // ask for browser permission
+            const permission = await Notification.requestPermission();
+            setPermission(permission);
 
-            if (fcmToken) {
-                setToken(fcmToken);
-                setPermission(Notification.permission);
-
-                // Store token in backend
-                await fetch('/api/notifications/token', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${idToken}`,
-                    },
-                    body: JSON.stringify({
-                        token: fcmToken,
-                        platform: 'web',
-                    }),
-                });
-
+            if (permission === 'granted') {
+                console.log(
+                    'Permission granted, AuthContext will handle token'
+                );
                 return true;
             }
+
             return false;
         } catch (error) {
             console.error('Error requesting notification permission:', error);
@@ -231,7 +178,7 @@ export function useNotifications() {
         } finally {
             setIsLoading(false);
         }
-    }, [isSupported, user, idToken]);
+    }, [isSupported]);
 
     // Load notification preferences
     const loadPreferences = useCallback(async () => {
@@ -258,6 +205,8 @@ export function useNotifications() {
             if (!user || !idToken) return;
 
             try {
+                console.log('Updating preferences:', newPreferences);
+
                 const response = await fetch('/api/notifications/preferences', {
                     method: 'PUT',
                     headers: {
@@ -268,18 +217,22 @@ export function useNotifications() {
                         preferences: newPreferences,
                     }),
                 });
-
-                if (response.ok) {
-                    setPreferences(
-                        (prev) =>
-                            ({
-                                ...prev,
-                                ...newPreferences,
-                            } as NotificationPreferences)
-                    );
-                    return true;
+                
+                if (!response.ok){
+                    console.error("api request failed", response.status)
+                    return false;
                 }
-                return false;
+                // Update local state
+                setPreferences((prev)=>{
+                    const updated = {
+                        ...(prev||[]),
+                        ...newPreferences,
+                    } as NotificationPreferences
+                    console.log("Updated preferences:", updated);
+                    return updated
+                })
+               
+                return true;
             } catch (error) {
                 console.error(
                     'Error updating notification preferences:',
@@ -291,11 +244,12 @@ export function useNotifications() {
         [user, idToken]
     );
 
-    // Remove notification token
+    // 🔧 토큰 제거 (AuthContext와 notifications 시스템 모두에서 제거)
     const removeToken = useCallback(async () => {
         if (!user || !token || !idToken) return;
 
         try {
+            // userNotificationTokens 컬렉션에서 제거
             await fetch('/api/notifications/token', {
                 method: 'DELETE',
                 headers: {
@@ -307,8 +261,9 @@ export function useNotifications() {
                 }),
             });
 
-            setToken(null);
+            // 권한 상태 업데이트 (토큰은 AuthContext에서 관리)
             setPermission('denied');
+            console.log('✅ FCM token removed from notifications system');
         } catch (error) {
             console.error('Error removing notification token:', error);
         }
@@ -362,9 +317,9 @@ export function useNotifications() {
         }
     }, [user, loadPreferences]);
 
-    // Auto-request permission when user is authenticated
+    // 🔧 자동 권한 요청 (AuthContext에 토큰이 있으면 스킵)
     useEffect(() => {
-        if (user && isSupported && permission === 'default') {
+        if (user && isSupported && permission === 'default' && !token) {
             const askForPermission = async () => {
                 const wantsPermission = confirm(
                     'To stay up-to-date with reviews and followers, please allow notifications.'
@@ -377,7 +332,7 @@ export function useNotifications() {
             const timer = setTimeout(askForPermission, 3000);
             return () => clearTimeout(timer);
         }
-    }, [user, isSupported, permission, requestPermission]);
+    }, [user, isSupported, permission, token, requestPermission]);
 
     // Remove notification from Firestore
     const deleteNotification = useCallback(
@@ -403,6 +358,7 @@ export function useNotifications() {
         preferences,
         notifications,
         unreadCount,
+        isEnabled,
 
         // Actions
         requestPermission,
@@ -415,7 +371,6 @@ export function useNotifications() {
         deleteNotification,
 
         // Computed
-        isEnabled: permission === 'granted' && !!token,
         canRequest:
             isSupported &&
             (permission === 'default' || permission === 'denied'),

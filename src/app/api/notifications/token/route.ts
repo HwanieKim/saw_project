@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const { token, platform = 'web' } = await req.json();
+        const { token } = await req.json();
         if (!token) {
             return NextResponse.json(
                 { error: 'Missing required field: token' },
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
         const decodedToken = await getAuth().verifyIdToken(idToken);
         const userId = decodedToken.uid;
 
-        await storeUserNotificationToken(userId, token, platform);
+        await storeUserNotificationToken(userId, token);
 
         return NextResponse.json({
             success: true,
