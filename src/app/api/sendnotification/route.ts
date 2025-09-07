@@ -1,4 +1,5 @@
 // src/app/api/sendnotification/route.ts
+// debugging
 console.log('api called');
 import { NextRequest, NextResponse } from 'next/server';
 import { sendSimpleNotification } from '@/firebase/admin';

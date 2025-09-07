@@ -41,7 +41,6 @@ export interface UserNotificationToken {
     token: string;
     createdAt: Date;
     lastUsed: Date;
-    platform?: 'web' | 'android' | 'ios';
 }
 
 // Send notification to a single user
@@ -172,6 +171,7 @@ export async function sendNotificationToTokens(
 /**
  * Sends a simple notification with title and body to a specific token.
  * This is a utility function to standardize simple pushes.
+ * In a real app, you would typically look up the token(s) based on userId, this is purely for demo/debugging.
  */
 export async function sendSimpleNotification(
     token: string,
@@ -214,8 +214,7 @@ export async function sendNotificationToUsers(
 // Store user notification token
 export async function storeUserNotificationToken(
     userId: string,
-    token: string,
-    platform: 'web' | 'android' | 'ios' = 'web'
+    token: string
 ): Promise<void> {
     try {
         // Check if token already exists
@@ -228,8 +227,7 @@ export async function storeUserNotificationToken(
             // Update existing token
             await existingToken.docs[0].ref.update({
                 userId,
-                lastUsed: new Date(),
-                platform,
+                lastUsed: new Date()
             });
         } else {
             // Create new token entry
@@ -237,8 +235,7 @@ export async function storeUserNotificationToken(
                 userId,
                 token,
                 createdAt: new Date(),
-                lastUsed: new Date(),
-                platform,
+                lastUsed: new Date()
             });
         }
 

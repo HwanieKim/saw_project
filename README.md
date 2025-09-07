@@ -39,10 +39,4 @@ Aprire [https://localhost:3000](https://localhost:3000)
 - TMDB API
 - Tailwind CSS
 
-## Build per Produzione
-
-```bash
-npm run build
-npm start
-```
 
