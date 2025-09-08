@@ -85,7 +85,7 @@ export default function MovieReviews({
                 timestamp: new Date(),
             });
             setModalOpen(false);
-            await fetchReviews();
+            await fetchReviews(); // Refresh reviews after adding
         } finally {
             setModalLoading(false);
         }

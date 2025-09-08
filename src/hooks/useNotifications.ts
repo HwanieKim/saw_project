@@ -84,10 +84,12 @@ export function useNotifications() {
             'notifications'
         );
         const q = query(notificationsRef, orderBy('createdAt', 'desc'));
-
+        
+        // Listen to real-time updates
         const unsubscribe = onSnapshot(
-            q,
-            (snapshot) => {
+            q, //query
+
+            (snapshot) => { // callback on data change
                 const fetchedNotifications = snapshot.docs.map((doc) => {
                     const data = doc.data();
                     return {
@@ -128,6 +130,7 @@ export function useNotifications() {
             if (!user || !idToken || notificationIds.length === 0) return;
 
             try {
+                // Call backend API to mark as read
                 await fetch('/api/notifications/mark-read', {
                     method: 'POST',
                     headers: {
@@ -150,7 +153,7 @@ export function useNotifications() {
                 console.error('Error marking notifications as read:', error);
             }
         },
-        [user, idToken]
+        [user, idToken] //recreate only when user or idToken changes
     );
 
     const requestPermission = useCallback(async () => {
@@ -264,7 +267,7 @@ export function useNotifications() {
         }
     }, [user, token, idToken]);
 
-    // Add notification to the list
+    // Add notification (foreground message)
     const addNotification = useCallback((notification: NotificationMessage) => {
         const stored: StoredNotification = {
             ...notification,
@@ -291,6 +294,7 @@ export function useNotifications() {
                 body: payload.notification?.body || '',
                 data: payload.data,
             };
+            //add notification to local state
             addNotification(notification);
             // Show browser notification if permission is granted
             if (Notification.permission === 'granted') {

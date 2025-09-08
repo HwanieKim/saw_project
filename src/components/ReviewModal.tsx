@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ReviewFormData } from '@/app/types';
 
 interface ReviewModalProps {
@@ -25,6 +25,22 @@ export default function ReviewModal({
     );
     const [hoveredRating, setHoveredRating] = useState(0);
 
+    useEffect(() => {
+        if (isOpen) { 
+            //reset form data when modal opens
+            if (initialData) {
+                setFormData({
+                    rating: initialData.rating,
+                    reviewText: initialData.reviewText,
+                });
+            } else {
+                setFormData({ rating: 0, reviewText: '' });
+            }
+        }
+        // only run when modal opens or initialData changes
+    }, [isOpen, initialData]);
+
+    
     if (!isOpen) return null;
 
     const handleSubmit = (e: React.FormEvent) => {

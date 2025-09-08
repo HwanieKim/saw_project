@@ -14,7 +14,6 @@ interface NotificationPreferences {
 
 export default function NotificationSettings() {
     const {
-        isSupported,
         permission,
         isLoading,
         preferences,
@@ -23,7 +22,7 @@ export default function NotificationSettings() {
         requestPermission,
         updatePreferences,
         removeToken,
-        token,
+       
     } = useNotifications();
 
     const [localPreferences, setLocalPreferences] =
