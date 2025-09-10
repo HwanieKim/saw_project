@@ -1,23 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Movie, Genre } from '@/app/types';
 import MovieCard from '@/components/MovieCard';
 import StarRating from '@/components/StarRating';
 
+// Type definitions for component props and state
 type SortOption = 'popularity' | 'rating' | 'release_date' | 'title';
 type ViewMode = 'grid' | 'list';
 
 export default function DiscoverPage() {
+    // Core state for movies and loading
     const [movies, setMovies] = useState<Movie[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Filter and category states
     const [activeCategory, setActiveCategory] = useState('trending');
     const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
     const [genres, setGenres] = useState<Genre[]>([]);
+
+    // UI and display preferences
     const [sortBy, setSortBy] = useState<SortOption>('popularity');
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
+
+    // Pagination state
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
+
+    // Advanced filter states
     const [minRating, setMinRating] = useState<number>(0);
     const [yearRange, setYearRange] = useState<{ min: number; max: number }>({
         min: 1900,
@@ -39,22 +49,8 @@ export default function DiscoverPage() {
         { value: 'title', label: 'Title' },
     ];
 
-    useEffect(() => {
-        fetchGenres();
-    }, []);
-
-    useEffect(() => {
-        setPage(1);
-        setMovies([]);
-        fetchMovies(true);
-    }, [activeCategory, selectedGenres, sortBy, minRating, yearRange]);
-
-    useEffect(() => {
-        if (page > 1) {
-            fetchMovies(false);
-        }
-    }, [page]);
-
+    // Fetch available genres from TMDB API via nextjs API 
+    // This is called once on component mount to populate genre filter options
     const fetchGenres = async () => {
         try {
             const response = await fetch('/api/genres');
@@ -67,85 +63,145 @@ export default function DiscoverPage() {
         }
     };
 
-    const fetchMovies = async (reset: boolean = false) => {
-        if (reset) {
-            setLoading(true);
-            setPage(1);
-        }
+    // Load genres on component mount
+    useEffect(() => {
+        fetchGenres();
+    }, []);
 
-        try {
-            let endpoint = `/api/movies/${activeCategory}?page=${
-                reset ? 1 : page
-            }`;
-
-            if (selectedGenres.length > 0) {
-                endpoint += `&genre=${selectedGenres.join(',')}`;
+    
+    // useCallback to prevent infinite re-renders dependencies
+    const fetchMovies = useCallback(
+        async (reset: boolean = false) => {
+            if (reset) {
+                setLoading(true);
+                setPage(1); // Reset to first page
             }
 
-            const response = await fetch(endpoint);
-            if (response.ok) {
-                const data = await response.json();
-                const newMovies = data.results || [];
+            try {
+                // Build API endpoint with category and pagination
+                let endpoint = `/api/movies/${activeCategory}?page=${
+                    reset ? 1 : page
+                }`;
 
-                if (reset) {
-                    setMovies(newMovies);
-                } else {
-                    setMovies((prev) => [...prev, ...newMovies]);
+                // Add genre filters if any are selected
+                if (selectedGenres.length > 0) {
+                    endpoint += `&genre=${selectedGenres.join(',')}`;
                 }
 
-                setHasMore(newMovies.length === 20); // Assuming 20 movies per page
-            }
-        } catch (error) {
-            console.error('Error fetching movies:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+                const response = await fetch(endpoint);
+                if (response.ok) {
+                    const data = await response.json();
+                    const newMovies = data.results || [];
 
+                    if (reset) {
+                        // Fresh data - replace existing movies
+                        setMovies(newMovies);
+                    } else {
+                        // Pagination - append to existing movies
+                        setMovies((prev) => [...prev, ...newMovies]);
+                    }
+
+                    // Check if there are more pages (TMDB typically returns 20 per page)
+                    setHasMore(newMovies.length === 20);
+                }
+            } catch (error) {
+                console.error('Error fetching movies:', error);
+            } finally {
+                setLoading(false);
+            }
+        },
+        [activeCategory, selectedGenres, page]
+    );
+
+    // Trigger fresh data fetch when filters change
+    // Resets page to 1 and clears movies before fetching new data
+    useEffect(() => {
+        setPage(1);
+        setMovies([]);
+        fetchMovies(true); // Reset = true for fresh data
+    }, [
+        activeCategory,
+        selectedGenres,
+        sortBy,
+        minRating,
+        yearRange,
+        fetchMovies,
+    ]);
+
+    // Handle pagination - load more movies when page changes
+    // Only fetches if page > 1 (not the initial page)
+    useEffect(() => {
+        if (page > 1) {
+            fetchMovies(false); // Reset = false to append data
+        }
+    }, [page, fetchMovies]);
+
+    // Event handler: Change movie category (trending, popular, etc.)
+    // Also clears genre selections since they're category-specific
     const handleCategoryChange = (categoryId: string) => {
         setActiveCategory(categoryId);
-        setSelectedGenres([]);
+        setSelectedGenres([]); // Clear genre filters when changing category
     };
 
+    // Event handler: Toggle genre filter on/off
+    // Adds genre if not selected, removes if already selected
     const handleGenreToggle = (genreId: number) => {
-        setSelectedGenres((prev) =>
-            prev.includes(genreId)
-                ? prev.filter((id) => id !== genreId)
-                : [...prev, genreId]
+        setSelectedGenres(
+            (prev) =>
+                prev.includes(genreId)
+                    ? prev.filter((id) => id !== genreId) // Remove genre
+                    : [...prev, genreId] // Add genre
         );
     };
 
+    // Event handler: Load more movies (pagination)
+    // Increments page number which triggers useEffect to fetch more data
     const handleLoadMore = () => {
         setPage((prev) => prev + 1);
     };
 
-    const filteredAndSortedMovies = movies
-        .filter((movie) => {
-            const rating = movie.vote_average || 0;
-            const year = parseInt(movie.release_date?.substring(0, 4) || '0');
+    // Memoized computation for client-side filtering and sorting
+    // Uses useMemo to prevent recalculation on every render
+    // Dependencies: [movies, minRating, yearRange, sortBy] - recalculates when these change
+    const filteredAndSortedMovies = useMemo(() => {
+        return movies
+            .filter((movie) => {
+                // Apply rating filter
+                const rating = movie.vote_average || 0;
+                // Extract year from release date string (YYYY-MM-DD format)
+                const year = parseInt(
+                    movie.release_date?.substring(0, 4) || '0'
+                );
 
-            return (
-                rating >= minRating &&
-                year >= yearRange.min &&
-                year <= yearRange.max
-            );
-        })
-        .sort((a, b) => {
-            switch (sortBy) {
-                case 'rating':
-                    return (b.vote_average || 0) - (a.vote_average || 0);
-                case 'release_date':
-                    return (
-                        new Date(b.release_date || 0).getTime() -
-                        new Date(a.release_date || 0).getTime()
-                    );
-                case 'title':
-                    return a.title.localeCompare(b.title);
-                default:
-                    return 0; // popularity is already sorted by API
-            }
-        });
-
+                // Return movies that meet all filter criteria
+                return (
+                    rating >= minRating &&
+                    year >= yearRange.min &&
+                    year <= yearRange.max
+                );
+            })
+            .sort((a, b) => {
+                // Sort by selected criteria
+                switch (sortBy) {
+                    case 'rating':
+                        // Highest rating first
+                        return (b.vote_average || 0) - (a.vote_average || 0);
+                    case 'release_date':
+                        // Newest first
+                        return (
+                            new Date(b.release_date || 0).getTime() -
+                            new Date(a.release_date || 0).getTime()
+                        );
+                    case 'title':
+                        // Alphabetical order
+                        return a.title.localeCompare(b.title);
+                    default:
+                        // Keep original order (popularity from API)
+                        return 0;
+                }
+            });
+    }, [movies, minRating, yearRange, sortBy]);
+    
     return (
         <div className="min-h-screen bg-gray-900 text-white">
             <div className="container mx-auto p-4">

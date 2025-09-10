@@ -64,7 +64,7 @@ const urlsToCache = [
     '/offline.html',
     '/manifest.json'
 ];
-
+// precaching, 
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -78,7 +78,7 @@ self.addEventListener('fetch', (event) => {
 
     // Let the browser handle requests for Next.js's internal assets.
     if (url.pathname.startsWith('/_next/')) {
-        return; 
+        return; // browser default caching, no sw involved
     }
     
     // For other GET requests, use a cache-first strategy.
@@ -99,6 +99,7 @@ self.addEventListener('fetch', (event) => {
                             return networkResponse;
                         }
                     ).catch(() => {
+                        // network failure handling
                         if (request.mode === 'navigate') {
                             return caches.match('/offline.html');
                         }
@@ -107,7 +108,7 @@ self.addEventListener('fetch', (event) => {
         );
     }
 });
-
+// Cache versioning and cleanup
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
