@@ -15,11 +15,7 @@ export const metadata: Metadata = {
     description:
         'Discover, organize, and share your favorite movies with friends',
     manifest: '/manifest.json',
-    appleWebApp: {
-        capable: true,
-        statusBarStyle: 'default',
-        title: 'CineShelf',
-    },
+ 
     formatDetection: {
         telephone: false,
     },
@@ -50,12 +46,6 @@ export default function RootLayout({
         <html lang="en">
             <head>
                 <meta name="application-name" content="CineShelf" />
-                <meta name="apple-mobile-web-app-capable" content="yes" />
-                <meta
-                    name="apple-mobile-web-app-status-bar-style"
-                    content="default"
-                />
-                <meta name="apple-mobile-web-app-title" content="CineShelf" />
                 <meta name="mobile-web-app-capable" content="yes" />
                 <meta name="msapplication-TileColor" content="#4F46E5" />
                 <meta name="msapplication-tap-highlight" content="no" />
