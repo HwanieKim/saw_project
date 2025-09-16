@@ -58,7 +58,7 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 
-const CACHE_NAME = 'cineshelf-pwa-v1';
+const CACHE_NAME = 'cineshelf-pwa-v2';
 const urlsToCache = [
     '/',
     '/offline.html',
@@ -74,12 +74,7 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('fetch', (event) => {
     const { request } = event;
-    const url = new URL(request.url);
 
-    // Let the browser handle requests for Next.js's internal assets.
-    if (url.pathname.startsWith('/_next/')) {
-        return; // browser default caching, no sw involved
-    }
     
     // For other GET requests, use a cache-first strategy.
     if (request.method === 'GET') {
@@ -100,7 +95,7 @@ self.addEventListener('fetch', (event) => {
                         }
                     ).catch(() => {
                         // network failure handling
-                        if (request.destination === 'document') {
+                        if (request.mode === 'navigate') {
                             return caches.match('/offline.html');
                         }
                     });
