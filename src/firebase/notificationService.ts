@@ -288,10 +288,8 @@ export async function sendBulkNotification(
 
 // Notification preferences management
 export interface NotificationPreferences {
-    movieReviews: boolean;
     followerGained: boolean;
     followedUserReviews: boolean;
-    recommendations: boolean;
     general: boolean;
 }
 
@@ -311,19 +309,15 @@ export async function getUserNotificationPreferences(
 
         // Return default preferences
         return {
-            movieReviews: true,
             followerGained: true,
             followedUserReviews: true,
-            recommendations: true,
             general: true,
         };
     } catch (error) {
         console.error('Error getting user notification preferences:', error);
         return {
-            movieReviews: true,
             followerGained: true,
             followedUserReviews: true,
-            recommendations: true,
             general: true,
         };
     }
@@ -361,62 +355,7 @@ export async function isNotificationEnabled(
     }
 }
 
-// Enhanced notification functions with preference checking
-export async function sendMovieReviewNotificationWithPreference(
-    reviewerId: string,
-    movieId: string,
-    movieTitle: string,
-    reviewerName: string,
-    rating: number
-): Promise<void> {
-    try {
-        const watchlistSnapshot = await db
-            .collection('watchlists')
-            .where('movieId', '==', movieId)
-            .get();
 
-        const userIds = watchlistSnapshot.docs.map((doc) => doc.data().userId);
-        const filteredUserIds = userIds.filter((id) => id !== reviewerId);
-
-        if (filteredUserIds.length === 0) return;
-
-        // Check preferences for each user
-        const usersToNotify: string[] = [];
-        for (const userId of filteredUserIds) {
-            if (await isNotificationEnabled(userId, 'movieReviews')) {
-                usersToNotify.push(userId);
-            }
-        }
-
-        if (usersToNotify.length === 0) return;
-
-        const notification: NotificationData = {
-            type: 'movie_review',
-            title: `New Review: ${movieTitle}`,
-            body: `${reviewerName} rated "${movieTitle}" ${rating}/5 stars`,
-            data: {
-                movieId,
-                reviewerId,
-                rating: rating.toString(),
-                type: 'movie_review',
-            },
-        };
-
-        await sendNotificationToUsers(usersToNotify, notification);
-        for (const userId of usersToNotify) {
-            await storeNotification(userId, notification);
-        }
-
-        console.log(
-            `Sent and stored movie review notification to ${usersToNotify.length} users (with preferences)`
-        );
-    } catch (error) {
-        console.error(
-            'Error sending movie review notification with preference:',
-            error
-        );
-    }
-}
 
 // Export the token management functions
 export { getUserNotificationTokens, removeUserNotificationToken };

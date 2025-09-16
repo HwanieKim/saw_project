@@ -14,10 +14,8 @@ import {
 } from 'firebase/firestore';
 
 interface NotificationPreferences {
-    movieReviews: boolean;
     followerGained: boolean;
     followedUserReviews: boolean;
-    recommendations: boolean;
     general: boolean;
     type: string;
 }

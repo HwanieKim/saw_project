@@ -76,6 +76,7 @@ export default function MovieReviews({
         setModalLoading(true);
         try {
             await Promise.all([
+                // review save
                 addDoc(collection(db, 'reviews'), {
                     userId: user.uid,
                     displayName:
@@ -116,7 +117,6 @@ export default function MovieReviews({
                 })(),
             ]);
 
-        
             setModalOpen(false);
             await fetchReviews(); // Refresh reviews after adding
         } catch (error) {
