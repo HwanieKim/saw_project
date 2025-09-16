@@ -86,7 +86,7 @@ export default function NotificationSettings() {
         }
     };
 
-    // 렌더링할 알림 설정 항목을 명시적으로 정의합니다.
+    // Define titles and descriptions for each preference type
     const preferenceDetails = {
         general: {
             title: 'General Notifications',
