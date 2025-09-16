@@ -9,8 +9,8 @@ import {
 } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { requestNotificationPermission } from '@/firebase/fcm';
+import { doc, getDoc, /*updateDoc */} from 'firebase/firestore';
+//import { requestNotificationPermission } from '@/firebase/fcm';
 
 // React context for managing user authentication state
 
@@ -31,6 +31,7 @@ interface AuthContextType {
     userProfile: UserProfile | null;
     loading: boolean;
     idToken: string | null;
+    authLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -38,6 +39,7 @@ const AuthContext = createContext<AuthContextType>({
     userProfile: null,
     loading: true,
     idToken: null,
+    authLoading: true,
 });
 
 interface AuthProviderProps {
@@ -49,11 +51,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [idToken, setIdToken] = useState<string | null>(null);
+    const [authLoading, setAuthLoading] = useState<boolean>(true);
 
     useEffect(() => {
         // Add a timeout to prevent infinite loading
         const timeoutId = setTimeout(() => {
-            setLoading(false);
+            if(loading || authLoading){
+                setLoading(false);
+                setAuthLoading(false);
+            }
         }, 5000); // 5 second timeout
         
         // Listen for auth state changes
@@ -81,49 +87,50 @@ export function AuthProvider({ children }: AuthProviderProps) {
                             createdAt: data.createdAt?.toDate() || new Date(),
                             fcmToken: data.fcmToken || '',
                         });
-
-                        try {
-                            // Request notification permission and get FCM token
-                            const currentToken =
-                                await requestNotificationPermission();
-                            
-                                // If we have a new token, update Firestore
-                                if (currentToken && data.fcmToken !== currentToken) {
-                                // Update Firestore with the new token
-                                
-                                await updateDoc(userDocRef, {
-                                    fcmToken: currentToken,
-                                });
-                                
-                                // Also update local state
-                                setUserProfile(prev => prev ? {
-                                    ...prev,
-                                    fcmToken: currentToken
-                                } : prev);
-
-                            } 
-                            // If no token in Firestore, but we have one now, save it
-                            else if (currentToken && !data.fcmToken) {
-                                await updateDoc(userDocRef, {
-                                    fcmToken: currentToken,
-                                });
-
-                                setUserProfile(prev => prev ? {
-                                    ...prev,
-                                    fcmToken: currentToken
-                                } : prev);
-                            }
-                        } catch (fcmerror) {
-                            console.error(
-                                'Error updating FCM token:',
-                                fcmerror
-                            );
-                        }
                     }
+                    //     try {
+                    //         // Request notification permission and get FCM token
+                    //         const currentToken =
+                    //             await requestNotificationPermission();
+                            
+                    //             // If we have a new token, update Firestore
+                    //             if (currentToken && data.fcmToken !== currentToken) {
+                    //             // Update Firestore with the new token
+                                
+                    //             await updateDoc(userDocRef, {
+                    //                 fcmToken: currentToken,
+                    //             });
+                                
+                    //             // Also update local state
+                    //             setUserProfile(prev => prev ? {
+                    //                 ...prev,
+                    //                 fcmToken: currentToken
+                    //             } : prev);
+
+                    //         } 
+                    //         // If no token in Firestore, but we have one now, save it
+                    //         else if (currentToken && !data.fcmToken) {
+                    //             await updateDoc(userDocRef, {
+                    //                 fcmToken: currentToken,
+                    //             });
+
+                    //             setUserProfile(prev => prev ? {
+                    //                 ...prev,
+                    //                 fcmToken: currentToken
+                    //             } : prev);
+                    //         }
+                    //     } catch (fcmerror) {
+                    //         console.error(
+                    //             'Error updating FCM token:',
+                    //             fcmerror
+                    //         );
+                    //     }
+                    // }
                 } catch (error) {
                     console.error('Error fetching user profile:', error);
                 }
             } else {
+                setUser(null);
                 setUserProfile(null);
                 setIdToken(null);
             }
@@ -139,7 +146,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         };
     }, []);
 
-    const value = { user, userProfile, loading, idToken };
+    const value = { user, userProfile, loading, idToken, authLoading };
 
     return (
         <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

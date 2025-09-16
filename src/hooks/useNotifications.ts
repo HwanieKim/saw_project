@@ -1,7 +1,7 @@
 //src/hooks/useNotifications.ts
 // React hook for managing notification permissions, tokens, and preferences
 import { useState, useEffect, useCallback } from 'react';
-import { onForegroundMessage } from '@/firebase/fcm';
+import { onForegroundMessage,requestNotificationPermission } from '@/firebase/fcm';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase/config'; // Client-side Firestore instance
 import {
@@ -156,27 +156,60 @@ export function useNotifications() {
         [user, idToken] //recreate only when user or idToken changes
     );
 
-    const requestPermission = useCallback(async () => {
-        if (!isSupported) return false;
 
-        // Check if permission is already granted
-        if (Notification.permission === 'granted') {
-            setPermission('granted');
-            return true;
-        }
+    const sendTokenToServer = useCallback(
+        async (fcmToken: string, currentIdToken: string) => {
+             if (!user || !currentIdToken) {
+                 console.error(
+                     'no user or idToken.'
+                 );
+                 return;
+             }
+
+
+            try {
+                //post to backend to save in userNotificationTokens collection
+                await fetch('/api/notifications/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${currentIdToken}`,
+                    },
+                    body: JSON.stringify({ token: fcmToken }),
+                });
+            } catch (error) {
+                console.error('POST /api/notifications/token:', error);
+            }
+        },
+        [user]
+    );
+    // Request notification permission and get FCM token
+    const requestPermission = useCallback(async () => {
+        if (!user || !idToken) return false;
 
         setIsLoading(true);
+
         try {
-            const permission = await Notification.requestPermission();
-            setPermission(permission);
-            return permission === 'granted';
+            console.log('Requesting notification permission...');
+            const fcmToken = await requestNotificationPermission();
+
+            console.log('FCM Token:', fcmToken);
+            if (fcmToken) {        
+                await sendTokenToServer(fcmToken, idToken!); // idToken이 null이 아님을 확신하고 !를 붙여 호출
+                console.log('Notification permission granted.');
+                setPermission('granted');
+                return true;
+            } else {
+                setPermission(Notification.permission);
+                return false;
+            }
         } catch (error) {
             console.error('Error requesting notification permission:', error);
             return false;
         } finally {
             setIsLoading(false);
         }
-    }, [isSupported]);
+    }, [user, idToken, sendTokenToServer]);
 
     // Load notification preferences
     const loadPreferences = useCallback(async () => {

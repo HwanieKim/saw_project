@@ -1,6 +1,6 @@
 'use client';
 // Component for managing user notification preferences
-
+import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState } from 'react';
 import { useNotifications } from '@/hooks/useNotifications';
 
@@ -22,9 +22,8 @@ export default function NotificationSettings() {
         requestPermission,
         updatePreferences,
         removeToken,
-       
     } = useNotifications();
-
+    const { loading: authLoading } = useAuth();
     const [localPreferences, setLocalPreferences] =
         useState<NotificationPreferences | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
@@ -119,7 +118,7 @@ export default function NotificationSettings() {
                         {canRequest && (
                             <button
                                 onClick={handleRequestPermission}
-                                disabled={isLoading}
+                                disabled={isLoading || authLoading}
                                 className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed">
                                 {isLoading
                                     ? 'Enabling...'
@@ -137,7 +136,6 @@ export default function NotificationSettings() {
                 </div>
             </div>
 
-    
             {permission !== 'granted' && (
                 <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/20 rounded">
                     <p className="text-yellow-800 dark:text-yellow-200">
@@ -264,7 +262,8 @@ export default function NotificationSettings() {
                         Notifications are currently blocked. To enable them:
                     </p>
                     <ol className="text-sm text-yellow-800 dark:text-yellow-200 space-y-2 list-decimal list-inside">
-                        Click &quot;Enable Notifications&quot; above and allow notifications in your browser.
+                        Click &quot;Enable Notifications&quot; above and allow
+                        notifications in your browser.
                     </ol>
                 </div>
             )}
