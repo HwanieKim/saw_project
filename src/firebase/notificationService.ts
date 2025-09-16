@@ -170,54 +170,6 @@ export async function sendFollowedUserReviewNotification(
     }
 }
 
-// Movie recommendation notification
-export async function sendMovieRecommendationNotification(
-    recommenderId: string,
-    recommenderName: string,
-    recipientId: string,
-    movieId: string,
-    movieTitle: string,
-    reason?: string
-): Promise<void> {
-    try {
-        const notification: NotificationData = {
-            type: 'recommendation',
-            title: 'Movie Recommendation',
-            body: reason
-                ? `${recommenderName} thinks you'll love "${movieTitle}" - ${reason}`
-                : `${recommenderName} recommended "${movieTitle}" to you`,
-            data: {
-                recommenderId,
-                recommenderName,
-                movieId,
-                movieTitle,
-                reason: reason || '',
-                type: 'recommendation',
-            },
-        };
-
-        const pushSent = await sendNotificationToUser(
-            recipientId,
-            notification
-        );
-        await storeNotification(recipientId, notification);
-
-        if (pushSent) {
-            console.log(
-                `Sent push and stored in-app notification for user: ${recipientId}`
-            );
-        } else {
-            console.log(
-                `Stored in-app notification for user ${recipientId} (no push notification sent).`
-            );
-        }
-    } catch (error) {
-        console.error(
-            'Error sending movie recommendation notification:',
-            error
-        );
-    }
-}
 
 // General notification
 export async function sendGeneralNotification(
