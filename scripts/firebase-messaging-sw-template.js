@@ -100,7 +100,7 @@ self.addEventListener('fetch', (event) => {
                         }
                     ).catch(() => {
                         // network failure handling
-                        if (request.mode === 'navigate') {
+                        if (request.destination === 'document') {
                             return caches.match('/offline.html');
                         }
                     });
