@@ -61,7 +61,7 @@ export async function sendMovieReviewNotification(
         const notification: NotificationData = {
             type: 'movie_review',
             title: `New Review: ${movieTitle}`,
-            body: `${reviewerName} rated "${movieTitle}" ${rating}/5 stars`,
+            body: `${reviewerName} rated "${movieTitle}" ${rating} stars`,
             data: {
                 movieId,
                 reviewerId,
@@ -129,7 +129,7 @@ export async function sendFollowerGainedNotification(
 export async function sendFollowedUserReviewNotification(
     reviewerId: string,
     reviewerName: string,
-    movieId: string,
+    movieId: number,
     movieTitle: string,
     rating: number,
     followerIds: string[]
@@ -140,11 +140,11 @@ export async function sendFollowedUserReviewNotification(
         const notification: NotificationData = {
             type: 'followed_user_review',
             title: `${reviewerName} reviewed ${movieTitle}`,
-            body: `${reviewerName} rated "${movieTitle}" ${rating}/5 stars`,
+            body: `${reviewerName} rated "${movieTitle}" ${rating} stars`,
             data: {
                 reviewerId,
                 reviewerName,
-                movieId,
+                movieId: movieId.toString(),
                 movieTitle,
                 rating: rating.toString(),
                 type: 'followed_user_review',

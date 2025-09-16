@@ -144,7 +144,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             clearTimeout(timeoutId);
             unsubscribe();
         };
-    }, []);
+    }, [authLoading, loading]);
 
     const value = { user, userProfile, loading, idToken, authLoading };
 

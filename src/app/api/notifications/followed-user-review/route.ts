@@ -2,12 +2,12 @@
 // API endpoint for sending notifications when followed users review movies
 import { NextRequest, NextResponse } from 'next/server';
 import { sendFollowedUserReviewNotification } from '@/firebase/notificationService';
+import { db } from '@/firebase/admin';
 
 export async function POST(req: NextRequest) {
     try {
         const {
             reviewerId,
-            reviewerName,
             movieId,
             movieTitle,
             rating,
@@ -16,7 +16,6 @@ export async function POST(req: NextRequest) {
 
         if (
             !reviewerId ||
-            !reviewerName ||
             !movieId ||
             !movieTitle ||
             !rating ||
@@ -30,6 +29,14 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        const reviewerDoc = await db.collection('users').doc(reviewerId).get();
+        if (!reviewerDoc.exists) {
+            return NextResponse.json(
+                { error: 'Invalid reviewerId' },
+                { status: 400 }
+            );
+        }
+        const reviewerName = reviewerDoc.data()?.displayName || 'Someone';
         if (!Array.isArray(followerIds)) {
             return NextResponse.json(
                 { error: 'followerIds must be an array' },

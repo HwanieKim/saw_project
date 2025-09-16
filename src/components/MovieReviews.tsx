@@ -10,6 +10,7 @@ import ReviewModal from './ReviewModal';
 import { addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { Timestamp } from 'firebase/firestore';
 
+
 interface MovieReviewsProps {
     movieId: number;
     moviePoster: string | null;
@@ -71,21 +72,55 @@ export default function MovieReviews({
 
     // Handle new review submission
     const handleReviewSubmit = async (data: ReviewFormData) => {
-        if (!user) return;
+        if (!user || !userProfile) return;
         setModalLoading(true);
         try {
-            await addDoc(collection(db, 'reviews'), {
-                userId: user.uid,
-                displayName: userProfile?.displayName || user.email || 'User',
-                movieId,
-                movieTitle,
-                moviePoster,
-                rating: data.rating,
-                reviewText: data.reviewText,
-                timestamp: new Date(),
-            });
+            await Promise.all([
+                addDoc(collection(db, 'reviews'), {
+                    userId: user.uid,
+                    displayName:
+                        userProfile?.displayName || user.email || 'User',
+                    movieId,
+                    movieTitle,
+                    moviePoster,
+                    rating: data.rating,
+                    reviewText: data.reviewText,
+                    timestamp: new Date(),
+                }),
+                // Notify followers
+                (async () => {
+                    const followersRef = collection(
+                        db,
+                        'users',
+                        user.uid,
+                        'followers'
+                    );
+                    const followersSnapshot = await getDocs(followersRef);
+                    const followerIds = followersSnapshot.docs.map(
+                        (doc) => doc.id
+                    );
+
+                    if (followerIds.length > 0) {
+                        await fetch('/api/notifications/followed-user-review', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                reviewerId: user.uid,
+                                movieId: movieId,
+                                movieTitle: movieTitle,
+                                rating: data.rating,
+                                followerIds: followerIds,
+                            }),
+                        });
+                    }
+                })(),
+            ]);
+
+        
             setModalOpen(false);
             await fetchReviews(); // Refresh reviews after adding
+        } catch (error) {
+            console.error('Error submitting review:', error);
         } finally {
             setModalLoading(false);
         }
