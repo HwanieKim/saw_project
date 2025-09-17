@@ -298,11 +298,6 @@ export default function HomePage() {
                         className="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors">
                         My watchlist
                     </a>
-                    <a
-                        href="/search-results?query=trending"
-                        className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                        Trending Now
-                    </a>
                 </div>
             </section>
         </div>
