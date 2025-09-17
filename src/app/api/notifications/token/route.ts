@@ -48,7 +48,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     try {
-        const { token } = await req.json();
+        const token = req.nextUrl.searchParams.get('token');
         if (!token) {
             return NextResponse.json(
                 { error: 'Missing required field: token' },

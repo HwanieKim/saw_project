@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "generate-sw": "node ./scripts/generate-sw.mjs",
-    "dev": "npm run generate-sw && next dev --experimental-https",
+    "dev": "next dev --experimental-https",
     "dev:clean": "rimraf .next && next dev",
     "build": "npm run generate-sw && next build",
     "start": "next start",

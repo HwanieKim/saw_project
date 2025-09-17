@@ -279,15 +279,13 @@ export function useNotifications() {
 
         try {
             // remove from collection userNotificationTokens
-            await fetch('/api/notifications/token', {
+            await fetch(`/api/notifications/token?token=${encodeURIComponent(token)}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${idToken}`,
                 },
-                body: JSON.stringify({
-                    token: token,
-                }),
+
             });
 
             // Update permission status (token is managed in AuthContext)
